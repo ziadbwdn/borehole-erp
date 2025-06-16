@@ -25,15 +25,15 @@ type LaboratoryRepository interface {
 
 // LaboratoryService defines the contract for laboratory business logic.
 type LaboratoryService interface {
-	CreateSample(ctx context.Context, sample *models.LabSample) (*models.LabSample, *exception.AppError)
+	CreateSample(ctx context.Context, sample *models.LabSample, userRole models.UserRole) (*models.LabSample, *exception.AppError)
 	GetSample(ctx context.Context, id utils.BinaryUUID) (*models.LabSample, *exception.AppError)
-	UpdateSample(ctx context.Context, sample *models.LabSample) *exception.AppError
-	DeleteSample(ctx context.Context, id utils.BinaryUUID) *exception.AppError
+	UpdateSample(ctx context.Context, sample *models.LabSample, userRole models.UserRole) *exception.AppError
+	DeleteSample(ctx context.Context, id utils.BinaryUUID, userRole models.UserRole) *exception.AppError
 	ListSamplesByStation(ctx context.Context, stationID utils.BinaryUUID) ([]*models.LabSample, *exception.AppError)
 
-	CreateUCSResult(ctx context.Context, ucs *models.UCSResult) (*models.UCSResult, *exception.AppError)
+	CreateUCSResult(ctx context.Context, ucs *models.UCSResult, userRole models.UserRole) (*models.UCSResult, *exception.AppError)
 	GetUCSResult(ctx context.Context, id utils.BinaryUUID) (*models.UCSResult, *exception.AppError)
-	UpdateUCSResult(ctx context.Context, ucs *models.UCSResult) *exception.AppError
-	DeleteUCSResult(ctx context.Context, id utils.BinaryUUID) *exception.AppError
+	UpdateUCSResult(ctx context.Context, ucs *models.UCSResult, userRole models.UserRole) *exception.AppError
+	DeleteUCSResult(ctx context.Context, id utils.BinaryUUID, userRole models.UserRole) *exception.AppError
 	ListUCSResultsBySample(ctx context.Context, sampleID utils.BinaryUUID) ([]*models.UCSResult, *exception.AppError)
 }

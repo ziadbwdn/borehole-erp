@@ -62,6 +62,8 @@ func (e *AppError) HTTPStatus() int {
 }
 
 // Constructors
+
+// NewDatabaseError creates an AppError for database-related issues.
 func NewDatabaseError(op string, err error) *AppError {
 	return &AppError{
 		Code:      ErrDatabase,
@@ -71,6 +73,7 @@ func NewDatabaseError(op string, err error) *AppError {
 	}
 }
 
+// NewNotFoundError creates an AppError for resources not found.
 func NewNotFoundError(entity string, id interface{}) *AppError {
 	return &AppError{
 		Code:    ErrNotFound,
@@ -79,6 +82,7 @@ func NewNotFoundError(entity string, id interface{}) *AppError {
 	}
 }
 
+// NewValidationError creates an AppError for invalid input.
 func NewValidationError(msg string, details ...string) *AppError {
 	return &AppError{
 		Code:    ErrValidation,
@@ -87,13 +91,24 @@ func NewValidationError(msg string, details ...string) *AppError {
 	}
 }
 
-func NewAuthError(msg string) *AppError {
+// NewAuthError creates an AppError for authentication failures (e.g., invalid token, missing credentials).
+func NewAuthError(msg string, details ...string) *AppError {
 	return &AppError{
 		Code:    ErrAuth,
+		Message: msg,
+		Details: details,
+	}
+}
+
+// NewPermissionError creates an AppError for authorization/permission failures (HTTP 403 Forbidden).
+func NewPermissionError(msg string) *AppError {
+	return &AppError{
+		Code:    ErrPermission,
 		Message: msg,
 	}
 }
 
+// NewInternalError creates an AppError for unexpected internal server issues.
 func NewInternalError(op string, err error) *AppError {
 	return &AppError{
 		Code:      ErrInternal,
@@ -103,6 +118,7 @@ func NewInternalError(op string, err error) *AppError {
 	}
 }
 
+// NewPDFGenerationError creates an AppError for PDF generation failures.
 func NewPDFGenerationError(op string, err error) *AppError {
 	return &AppError{
 		Code:      ErrPDFGeneration,

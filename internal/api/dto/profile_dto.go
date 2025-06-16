@@ -5,21 +5,20 @@ import (
 	"time"
 )
 
-// ProfileResponse defines user profile output
+// ProfileResponse (assuming it exists and is used elsewhere for user profiles)
 type ProfileResponse struct {
 	ID        utils.BinaryUUID `json:"id"`
 	Username  string           `json:"username"`
 	Email     string           `json:"email"`
-	FullName  string           `json:"full_name"`
+	FullName  string           `json:"fullName"`
 	Role      string           `json:"role"`
 	CreatedAt time.Time        `json:"createdAt"`
-	UpdatedAt time.Time        `json:"updatedAt,omitempty"`
+	UpdatedAt time.Time        `json:"updatedAt"`
 }
 
-// UpdateProfileRequest represents the request body for updating a user's profile.
-// Fields are pointers to allow partial updates (nil means no change).
+// UpdateProfileRequest (assuming it exists and is used elsewhere for user profile updates)
 type UpdateProfileRequest struct {
-	Email    *string `json:"email,omitempty" binding:"omitempty,email"`
-	FullName *string `json:"fullName,omitempty" binding:"omitempty,min=3,max=100"`
-	Password *string `json:"password,omitempty" binding:"omitempty,min=12"` // Password validation handled in service
+	Email    *string `json:"email" validate:"omitempty,email"`
+	FullName *string `json:"fullName" validate:"omitempty,max=100"`
+	Password *string `json:"password" validate:"omitempty,password"`
 }

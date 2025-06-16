@@ -31,8 +31,17 @@ func NewLithologyService(
 func (s *LithologyServiceImpl) CreateLog(
 	ctx context.Context,
 	log *models.LithologyLog,
-	createdBy utils.BinaryUUID, // Assuming this is for audit/tracking purposes, though not directly in model for now
+	createdBy utils.BinaryUUID, // This parameter is currently unused for the log model itself
+	userRole models.UserRole, // Added userRole for authorization
 ) (*models.LithologyLog, *exception.AppError) {
+	// --- Authorization Check for Create ---
+	// Only 'admin' or 'geologist' roles can create lithology logs.
+	if userRole != models.RoleAdmin && userRole != models.RoleGeologist {
+		// Using NewPermissionError for authorization issues
+		return nil, exception.NewPermissionError("User not authorized to create lithology logs")
+	}
+	// --- End Authorization Check ---
+
 	// Verify StationID exists
 	_, appErr := s.stationRepo.GetByID(ctx, log.StationID)
 	if appErr != nil {
@@ -45,6 +54,8 @@ func (s *LithologyServiceImpl) CreateLog(
 		log.CreatedAt = time.Now()
 	}
 	log.UpdatedAt = time.Now()
+	// If LithologyLog had a CreatedByID field, you would set it here:
+	// log.CreatedByID = createdBy
 
 	appErr = s.lithologyRepo.CreateLog(ctx, log)
 	if appErr != nil {
@@ -55,6 +66,8 @@ func (s *LithologyServiceImpl) CreateLog(
 }
 
 // GetLogByID retrieves a lithology log by its ID.
+// No specific role-based access check here, assuming public read access or that
+// project-level access is handled implicitly by the client's scope.
 func (s *LithologyServiceImpl) GetLogByID(
 	ctx context.Context,
 	id utils.BinaryUUID,
@@ -69,8 +82,19 @@ func (s *LithologyServiceImpl) GetLogByID(
 // UpdateLog handles the business logic for updating an existing lithology log.
 func (s *LithologyServiceImpl) UpdateLog(
 	ctx context.Context,
-	log *models.LithologyLog, // This 'log' model should contain the ID and fields to update
+	log *models.LithologyLog,
+	userRole models.UserRole, // Added userRole for authorization
 ) *exception.AppError {
+	// --- Authorization Check for Update ---
+	// Only 'admin' or 'geologist' roles can update lithology logs.
+	// For more granular control (e.g., only update their own logs),
+	// you would fetch the existing log and compare 'loggedBy' field with the current user's ID.
+	if userRole != models.RoleAdmin && userRole != models.RoleGeologist {
+		// Using NewPermissionError for authorization issues
+		return exception.NewPermissionError("User not authorized to update lithology logs")
+	}
+	// --- End Authorization Check ---
+
 	// First, retrieve the existing log to ensure it exists and to get current values.
 	existingLog, appErr := s.lithologyRepo.GetLogByID(ctx, log.ID)
 	if appErr != nil {
@@ -120,6 +144,9 @@ func (s *LithologyServiceImpl) UpdateLog(
 	if log.Description != "" {
 		existingLog.Description = log.Description
 	}
+	// IMPORTANT: Check if pbdecimal.Decimal.Value is not the zero-value string "0"
+	// if it's meant to distinguish between "not provided" and "explicitly zero".
+	// For now, assuming any non-empty string means it's provided.
 	if log.RQDPercentage.Internal.Value != "" {
 		existingLog.RQDPercentage.Internal.Value = log.RQDPercentage.Internal.Value
 	}
@@ -129,7 +156,7 @@ func (s *LithologyServiceImpl) UpdateLog(
 	if log.LoggedBy != "" {
 		existingLog.LoggedBy = log.LoggedBy
 	}
-	if !log.LoggedDate.IsZero() {
+	if log.LoggedDate != nil && !log.LoggedDate.IsZero() { // Ensure pointer is not nil before dereferencing and checking IsZero()
 		existingLog.LoggedDate = log.LoggedDate
 	}
 
@@ -147,7 +174,18 @@ func (s *LithologyServiceImpl) UpdateLog(
 func (s *LithologyServiceImpl) DeleteLog(
 	ctx context.Context,
 	id utils.BinaryUUID,
+	userRole models.UserRole, // Added userRole for authorization
 ) *exception.AppError {
+	// --- Authorization Check for Delete ---
+	// Only 'admin' role can delete lithology logs.
+	// You might allow 'editor'/'geologist' to delete their own, but that requires
+	// fetching the log first and comparing the 'createdBy' or 'loggedBy' field.
+	if userRole != models.RoleAdmin {
+		// Using NewPermissionError for authorization issues
+		return exception.NewPermissionError("User not authorized to delete lithology logs")
+	}
+	// --- End Authorization Check ---
+
 	appErr := s.lithologyRepo.DeleteLog(ctx, id)
 	if appErr != nil {
 		return appErr // Propagate error from repository
@@ -156,6 +194,8 @@ func (s *LithologyServiceImpl) DeleteLog(
 }
 
 // ListLogsByStation retrieves a list of lithology logs associated with a specific station.
+// No specific role-based access check here, assuming public read access or that
+// project-level access is handled implicitly by the client's scope.
 func (s *LithologyServiceImpl) ListLogsByStation(
 	ctx context.Context,
 	stationID utils.BinaryUUID,
@@ -171,6 +211,7 @@ func (s *LithologyServiceImpl) ListLogsByStation(
 }
 
 // ListLogsByDepthRange retrieves lithology logs for a given station ID within a specified depth range.
+// No specific role-based access check here, similar to ListLogsByStation.
 func (s *LithologyServiceImpl) ListLogsByDepthRange(
 	ctx context.Context,
 	stationID utils.BinaryUUID,

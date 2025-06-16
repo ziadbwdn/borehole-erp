@@ -1,25 +1,52 @@
 package http_response
 
 import (
-	"boreholedata-ms/internal/api/dto"
-	"boreholedata-ms/internal/exception"
+	"boreholedata-ms/internal/exception" // Adjust import path if needed
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-// HandleAppError is a utility function to standardize error responses from AppError.
-// It takes a Gin context and an AppError, and sends a JSON response with the appropriate
-// HTTP status code and error details.
-func HandleAppError(c *gin.Context, appErr *exception.AppError) {
-	c.JSON(appErr.HTTPStatus(), dto.ErrorResponse{
-		Code:    string(appErr.Code),
-		Message: appErr.Message,
-		Details: appErr.Details,
+// WebResponse is the standardized structure for all API responses.
+type WebResponse struct {
+	Code   int         `json:"code"`            // HTTP status code, e.g., 200
+	Status string      `json:"status"`          // HTTP status text, e.g., "OK"
+	Data   interface{} `json:"data,omitempty"`  // Payload for successful responses
+	Error  interface{} `json:"error,omitempty"` // Structured error details for failed responses
+}
+
+// ErrorDetail is the standardized structure for the nested error object.
+// This is created from an internal exception.AppError.
+type ErrorDetail struct {
+	Code    string      `json:"code"`              // Application-specific error code, e.g., "not_found"
+	Message string      `json:"message"`           // Human-readable error message
+	Details interface{} `json:"details,omitempty"` // Optional validation details or other info
+}
+
+// Success sends a standardized success response.
+// It replaces the old RespondWithSuccess.
+func RespondWithSuccess(c *gin.Context, code int, data interface{}) {
+	c.JSON(code, WebResponse{
+		Code:   code,
+		Status: http.StatusText(code),
+		Data:   data,
 	})
 }
 
-// RespondWithSuccess is a utility function to standardize success responses.
-// It takes a Gin context, an HTTP status code, and the data to be returned.
-func RespondWithSuccess(c *gin.Context, status int, data interface{}) {
-	c.JSON(status, data)
+// Error sends a standardized error response from an AppError.
+// It replaces the old HandleAppError.
+func HandleAppError(c *gin.Context, err *exception.AppError) {
+	status := err.HTTPStatus()
+
+	errorDetail := ErrorDetail{
+		Code:    string(err.Code),
+		Message: err.Message,
+		Details: err.Details,
+	}
+
+	c.AbortWithStatusJSON(status, WebResponse{
+		Code:   status,
+		Status: http.StatusText(status),
+		Error:  errorDetail,
+	})
 }

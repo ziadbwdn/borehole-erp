@@ -106,3 +106,7 @@ func validationMessage(e validator.FieldError) string {
 		return "Validation failed"
 	}
 }
+
+func Pointer[T any](v T) *T {
+	return &v
+}

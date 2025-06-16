@@ -3,15 +3,15 @@ package repository
 import (
 	"context"
 	"fmt"
-	"time" // Needed for CreatedAt/UpdatedAt fields if not handled by GORM hooks
+	"time"
 
-	"boreholedata-ms/internal/exception"           // Import your custom exception package
-	"boreholedata-ms/internal/interfaces/contract" // Import your user contract interface
-	"boreholedata-ms/internal/models"              // Import your user model
-	"boreholedata-ms/internal/utils"               // Import your utility types like BinaryUUID
+	"boreholedata-ms/internal/exception"
+	"boreholedata-ms/internal/interfaces/contract"
+	"boreholedata-ms/internal/models"
+	"boreholedata-ms/internal/utils"
 
-	"gorm.io/gorm"        // Import GORM
-	"gorm.io/gorm/clause" // For ON CONFLICT DO NOTHING
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // userRepository is a concrete implementation of the contract.UserRepository interface.
@@ -27,11 +27,7 @@ func NewUserRepository(db *gorm.DB) contract.UserRepository {
 }
 
 // CreateUser inserts a new user record into the database using GORM.
-// It takes a context and a User model, returning an error if the operation fails.
-func (r *userRepository) CreateUser(ctx context.Context, user *models.User) error {
-	// GORM will automatically handle setting CreatedAt/UpdatedAt if your models
-	// embed gorm.Model or have fields named CreatedAt/UpdatedAt with time.Time type.
-	// If not, you might need to set them manually before Create.
+func (r *userRepository) CreateUser(ctx context.Context, user *models.User) *exception.AppError {
 	if user.CreatedAt.IsZero() {
 		user.CreatedAt = time.Now()
 	}
@@ -39,36 +35,84 @@ func (r *userRepository) CreateUser(ctx context.Context, user *models.User) erro
 
 	result := r.db.WithContext(ctx).Create(user)
 	if result.Error != nil {
-		// Use your custom NewDatabaseError constructor for GORM errors.
 		return exception.NewDatabaseError(fmt.Sprintf("create user '%s'", user.Username), result.Error)
 	}
 	return nil
 }
 
 // GetUserByUsername retrieves a single user record from the database by their username using GORM.
-// It takes a context and a username string, returning the User model or an error.
-func (r *userRepository) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
-	user := &models.User{} // Initialize an empty User struct to hold the results.
+func (r *userRepository) GetUserByUsername(ctx context.Context, username string) (*models.User, *exception.AppError) {
+	user := &models.User{}
 
-	// Use GORM's Where and First methods to find a user by username.
 	result := r.db.WithContext(ctx).Where("username = ?", username).First(user)
 
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			// Return a specific error if no user is found, which can be handled by the service layer.
-			// Use NewNotFoundError for this case.
 			return nil, exception.NewNotFoundError("User", username)
 		}
-		// Wrap other GORM errors using NewDatabaseError.
 		return nil, exception.NewDatabaseError(fmt.Sprintf("get user by username '%s'", username), result.Error)
 	}
 	return user, nil
 }
 
+// GetUserByEmail retrieves a single user record from the database by their email using GORM.
+func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, *exception.AppError) {
+	user := &models.User{}
+	result := r.db.WithContext(ctx).Where("email = ?", email).First(user)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, exception.NewNotFoundError("User", email)
+		}
+		return nil, exception.NewDatabaseError(fmt.Sprintf("get user by email '%s'", email), result.Error)
+	}
+	return user, nil
+}
+
+// GetUserByID retrieves a single user record from the database by their ID using GORM.
+func (r *userRepository) GetUserByID(ctx context.Context, id utils.BinaryUUID) (*models.User, *exception.AppError) {
+	user := &models.User{}
+
+	result := r.db.WithContext(ctx).First(user, "id = ?", id)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, exception.NewNotFoundError("User", id)
+		}
+		return nil, exception.NewDatabaseError(fmt.Sprintf("get user by ID '%s'", id.String()), result.Error)
+	}
+	return user, nil
+}
+
+// UpdateUser updates an existing user record in the database using GORM.
+func (r *userRepository) UpdateUser(ctx context.Context, user *models.User) *exception.AppError {
+	user.UpdatedAt = time.Now()
+
+	result := r.db.WithContext(ctx).Save(user)
+	if result.Error != nil {
+		return exception.NewDatabaseError(fmt.Sprintf("update user '%s'", user.ID.String()), result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return exception.NewNotFoundError("User", user.ID)
+	}
+
+	return nil
+}
+
+// DeleteUser deletes a user record from the database.
+func (r *userRepository) DeleteUser(ctx context.Context, id utils.BinaryUUID) *exception.AppError {
+	result := r.db.WithContext(ctx).Delete(&models.User{}, "id = ?", id)
+	if result.Error != nil {
+		return exception.NewDatabaseError(fmt.Sprintf("delete user '%s'", id.String()), result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return exception.NewNotFoundError("User", id)
+	}
+	return nil
+}
+
 // GrantPermission inserts or updates a user's permission for a specific project using GORM.
-// This assumes a separate linking table (e.g., user_project_permissions) for many-to-many relationships.
-// For simplicity, we define a temporary struct for the permission record.
-// You might have a dedicated GORM model for this table.
 type UserProjectPermission struct {
 	UserID     utils.BinaryUUID `gorm:"type:binary(16);primaryKey"`
 	ProjectID  utils.BinaryUUID `gorm:"type:binary(16);primaryKey"`
@@ -80,7 +124,7 @@ func (UserProjectPermission) TableName() string {
 	return "user_project_permissions" // Specify the table name
 }
 
-func (r *userRepository) GrantPermission(ctx context.Context, userID, projectID utils.BinaryUUID, permission string) error {
+func (r *userRepository) GrantPermission(ctx context.Context, userID, projectID utils.BinaryUUID, permission string) *exception.AppError {
 	permissionRecord := UserProjectPermission{
 		UserID:     userID,
 		ProjectID:  projectID,
@@ -88,7 +132,6 @@ func (r *userRepository) GrantPermission(ctx context.Context, userID, projectID 
 		GrantedAt:  time.Now(),
 	}
 
-	// Use GORM's Clauses for ON CONFLICT DO NOTHING behavior.
 	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&permissionRecord)
 	if result.Error != nil {
 		return exception.NewDatabaseError(
@@ -99,44 +142,76 @@ func (r *userRepository) GrantPermission(ctx context.Context, userID, projectID 
 	return nil
 }
 
-// GetUserByID retrieves a single user record from the database by their ID using GORM.
-// It takes a context and a user ID, returning the User model or an error.
-func (r *userRepository) GetUserByID(ctx context.Context, id utils.BinaryUUID) (*models.User, error) {
-	user := &models.User{} // Initialize an empty User struct to hold the results.
-
-	// Use GORM's First method to find a user by ID.
-	result := r.db.WithContext(ctx).First(user, "id = ?", id) // GORM automatically maps ID to primary key
-
+// SaveRefreshToken updates a user's refresh token hash and expiry in the database.
+func (r *userRepository) SaveRefreshToken(ctx context.Context, userID utils.BinaryUUID, tokenHash string, expiresAt time.Time) *exception.AppError {
+	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"refresh_token":            tokenHash,
+		"refresh_token_expires_at": expiresAt,
+		"updated_at":               time.Now(), // Update updated_at
+	})
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			// Return a specific error if no user is found.
-			return nil, exception.NewNotFoundError("User", id)
-		}
-		// Wrap other GORM errors using NewDatabaseError.
-		return nil, exception.NewDatabaseError(fmt.Sprintf("get user by ID '%s'", id.String()), result.Error)
+		return exception.NewDatabaseError("Failed to save refresh token", result.Error)
 	}
-	return user, nil
+	if result.RowsAffected == 0 {
+		return exception.NewNotFoundError("User", userID.String())
+	}
+	return nil
 }
 
-// UpdateUser updates an existing user record in the database using GORM.
-// It takes a context and a User model with updated fields, returning an error if the operation fails.
-func (r *userRepository) UpdateUser(ctx context.Context, user *models.User) error {
-	// Ensure the UpdatedAt timestamp is set before updating.
-	user.UpdatedAt = time.Now()
-
-	// Use GORM's Save method to update the user.
-	// Save will perform an UPDATE if the primary key exists, otherwise an INSERT.
-	// We assume the user.ID is already set for an update operation.
-	result := r.db.WithContext(ctx).Save(user)
+// ClearRefreshToken clears a user's refresh token and expiry from the database.
+func (r *userRepository) ClearRefreshToken(ctx context.Context, userID utils.BinaryUUID) *exception.AppError {
+	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"refresh_token":            gorm.Expr("NULL"), // Set to NULL
+		"refresh_token_expires_at": gorm.Expr("NULL"), // Set to NULL
+		"updated_at":               time.Now(),        // Update updated_at
+	})
 	if result.Error != nil {
-		// Wrap GORM errors using NewDatabaseError.
-		return exception.NewDatabaseError(fmt.Sprintf("update user '%s'", user.ID.String()), result.Error)
+		return exception.NewDatabaseError("Failed to clear refresh token", result.Error)
 	}
-
-	// Check if any rows were affected. If not, it might indicate the user was not found.
+	// If user not found, it means there's nothing to clear, which is fine for logout.
+	// But since you want AppError consistency, we'll return NotFound if 0 rows affected.
 	if result.RowsAffected == 0 {
-		return exception.NewNotFoundError("User", user.ID)
+		return exception.NewNotFoundError("User", userID.String())
 	}
+	return nil
+}
 
+// GetUserByPasswordResetTokenHash retrieves a user by their stored password reset token hash.
+func (r *userRepository) GetUserByPasswordResetTokenHash(ctx context.Context, tokenHash string) (*models.User, *exception.AppError) {
+	var user models.User
+	if err := r.db.WithContext(ctx).First(&user, "password_reset_token = ?", tokenHash).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, exception.NewNotFoundError("User by password reset token", tokenHash)
+		}
+		return nil, exception.NewDatabaseError("Failed to retrieve user by password reset token hash", err)
+	}
+	return &user, nil
+}
+
+// ClearPasswordResetToken clears a user's password reset token and sent at timestamp.
+func (r *userRepository) ClearPasswordResetToken(ctx context.Context, userID utils.BinaryUUID) *exception.AppError {
+	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"password_reset_token":   gorm.Expr("NULL"),
+		"password_reset_sent_at": gorm.Expr("NULL"),
+		"updated_at":             time.Now(),
+	})
+	if result.Error != nil {
+		return exception.NewDatabaseError("Failed to clear password reset token", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return exception.NewNotFoundError("User", userID.String())
+	}
+	return nil
+}
+
+func (r *userRepository) UpdateLastLogin(ctx context.Context, userID utils.BinaryUUID) *exception.AppError {
+	now := time.Now()
+	result := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("last_login_at", now)
+
+	if result.Error != nil {
+		return exception.NewDatabaseError("update last login", result.Error)
+	}
+	// We don't strictly need to check RowsAffected here, as failing to update a timestamp is not critical.
+	// You can add it if you want to be strict.
 	return nil
 }

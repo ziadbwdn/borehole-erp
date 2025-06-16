@@ -1,29 +1,25 @@
 package services
 
 import (
+	"boreholedata-ms/internal/api/dto"
 	"boreholedata-ms/internal/exception"
 	"boreholedata-ms/internal/interfaces/contract"
 	"boreholedata-ms/internal/models"
-	"boreholedata-ms/internal/utils" // Now importing utils for the helper functions
+	"boreholedata-ms/internal/utils"
 	"context"
-
-	// "errors" // Removed: No longer directly used in this file
 	"fmt"
-	// "strconv" // No longer needed directly here
 	"time"
-	// pbdecimal "google.golang.org/genproto/googleapis/type/decimal" // No longer needed directly here
 )
 
-// StationServiceImpl implements the contract.StationService interface.
+// The service no longer needs a roleValidator.
 type StationServiceImpl struct {
 	stationRepo contract.StationRepository
-	projectRepo contract.ProjectRepository // Needed to verify ProjectID exists
+	projectRepo contract.ProjectRepository
 }
 
-// NewStationService creates and returns a new instance of StationServiceImpl.
 func NewStationService(
 	stationRepo contract.StationRepository,
-	projectRepo contract.ProjectRepository, // Pass ProjectRepository dependency
+	projectRepo contract.ProjectRepository,
 ) contract.StationService {
 	return &StationServiceImpl{
 		stationRepo: stationRepo,
@@ -40,10 +36,10 @@ func (s *StationServiceImpl) CreateStation(
 	// Verify ProjectID exists
 	_, appErr := s.projectRepo.GetByID(ctx, station.ProjectID)
 	if appErr != nil {
-		// If project not found or other error, propagate it.
-		// Note: If GetByID returns a *exception.AppError for NotFound, this will correctly propagate it.
-		// If it returns a generic error, you might need errors.As here, but current contract says *AppError.
-		return nil, exception.NewValidationError(fmt.Sprintf("Project with ID '%s' not found or inaccessible", station.ProjectID.String()))
+		if appErr.Code == exception.ErrNotFound {
+			return nil, exception.NewValidationError(fmt.Sprintf("Project with ID '%s' not found or inaccessible", station.ProjectID.String()))
+		}
+		return nil, appErr // Propagate other errors from project repo
 	}
 
 	station.ID = utils.NewBinaryUUID() // Generate a new UUID for the station
@@ -52,6 +48,30 @@ func (s *StationServiceImpl) CreateStation(
 		station.CreatedAt = time.Now()
 	}
 	station.UpdatedAt = time.Now()
+
+	// Ensure drilling status is valid if provided, otherwise default.
+	// If the handler passes an empty string, it will be caught by the default GORM tag
+	// (gorm:"default:'planned'"). However, if a non-empty, invalid string is passed,
+	// validate it here.
+	if station.DrillingStatus != "" {
+		validStatus := false
+		for _, s := range []models.DrillingStatus{
+			models.DrillingStatusPlanned,
+			models.DrillingStatusInProgress,
+			models.DrillingStatusCompleted,
+			models.DrillingStatusAbandoned,
+			models.DrillingStatusSuspended,
+			models.DrillingStatusOnHold,
+		} {
+			if station.DrillingStatus == s {
+				validStatus = true
+				break
+			}
+		}
+		if !validStatus {
+			return nil, exception.NewValidationError(fmt.Sprintf("Invalid drilling status for creation: %s", station.DrillingStatus))
+		}
+	}
 
 	appErr = s.stationRepo.Create(ctx, station)
 	if appErr != nil {
@@ -73,60 +93,74 @@ func (s *StationServiceImpl) GetStation(
 	return station, nil
 }
 
-// UpdateStation handles the business logic for updating an existing station.
+// UpdateStation now contains all the logic and is much more robust.
 func (s *StationServiceImpl) UpdateStation(
 	ctx context.Context,
-	station *models.Station, // This 'station' model should contain the ID and fields to update
-) *exception.AppError {
-	// First, retrieve the existing station to ensure it exists and to get current values.
-	existingStation, appErr := s.stationRepo.GetByID(ctx, station.ID)
+	stationID utils.BinaryUUID,
+	req *dto.UpdateStationRequest, // Receives the DTO
+) (*models.Station, *exception.AppError) {
+
+	// Step 1: Load the full, existing station from the database.
+	existingStation, appErr := s.stationRepo.GetByID(ctx, stationID)
 	if appErr != nil {
-		return appErr // Propagate NotFoundError or DatabaseError from repo
+		return nil, appErr
 	}
 
-	// Apply updates from the provided 'station' model to the 'existingStation'.
-	// Only update fields if they are explicitly provided (non-zero/non-empty for basic types, or checked for pointers in handler).
-	// For decimal.Decimal, we need to check if the Value string is non-empty.
-	if station.StationCode != "" {
-		existingStation.StationCode = station.StationCode
+	// Step 2: Apply changes directly from the DTO's non-nil fields.
+	// This is now the single source of truth for update logic.
+	if req.StationCode != nil {
+		existingStation.StationCode = *req.StationCode
 	}
-	if station.StationName != "" {
-		existingStation.StationName = station.StationName
+	if req.StationName != nil {
+		existingStation.StationName = *req.StationName
 	}
-	if station.StationType != "" {
-		existingStation.StationType = station.StationType
+	if req.StationType != nil {
+		existingStation.StationType = *req.StationType
 	}
-	// Corrected: Update the GormDecimal struct directly
-	if station.Latitude.Internal.Value != "" { // Check if the string value is non-empty
-		existingStation.Latitude.Internal.Value = station.Latitude.Internal.Value
+	if req.DrillingStatus != nil {
+		// You can add validation logic here if needed
+		existingStation.DrillingStatus = models.DrillingStatus(*req.DrillingStatus)
 	}
-	if station.Longitude.Internal.Value != "" { // Check if the string value is non-empty
-		existingStation.Longitude.Internal.Value = station.Longitude.Internal.Value
+	if req.DrillingDate != nil {
+		existingStation.DrillingDate = req.DrillingDate
 	}
-	if station.Elevation.Internal.Value != "" { // Check if the string value is non-empty
-		existingStation.Elevation.Internal.Value = station.Elevation.Internal.Value
+	if req.GeologistName != nil {
+		existingStation.GeologistName = *req.GeologistName
 	}
-	if station.TotalDepth.Internal.Value != "" { // Check if the string value is non-empty
-		existingStation.TotalDepth.Internal.Value = station.TotalDepth.Internal.Value
-	}
-	if !station.DrillingDate.IsZero() {
-		existingStation.DrillingDate = station.DrillingDate
-	}
-	if station.GeologistName != "" {
-		existingStation.GeologistName = station.GeologistName
-	}
-	if station.Notes != "" {
-		existingStation.Notes = station.Notes
+	if req.Notes != nil {
+		existingStation.Notes = *req.Notes
 	}
 
-	existingStation.UpdatedAt = time.Now() // Update the timestamp
+	// Handle GormDecimal fields
+	if req.Latitude != nil {
+		if gd, err := utils.StringToGormDecimal(*req.Latitude); err == nil {
+			existingStation.Latitude = *gd
+		}
+	}
+	if req.Longitude != nil {
+		if gd, err := utils.StringToGormDecimal(*req.Longitude); err == nil {
+			existingStation.Longitude = *gd
+		}
+	}
+	if req.Elevation != nil {
+		if gd, err := utils.StringToGormDecimal(*req.Elevation); err == nil {
+			existingStation.Elevation = *gd
+		}
+	}
+	if req.TotalDepth != nil {
+		if gd, err := utils.StringToGormDecimal(*req.TotalDepth); err == nil {
+			existingStation.TotalDepth = *gd
+		}
+	}
+	// ... etc. for all fields in your DTO
 
-	appErr = s.stationRepo.Update(ctx, existingStation)
-	if appErr != nil {
-		return appErr // Propagate error from repository
+	// Step 3: Save the modified record to the database.
+	if appErr := s.stationRepo.Update(ctx, existingStation); appErr != nil {
+		return nil, appErr
 	}
 
-	return nil
+	// Step 4: Return the fully updated model.
+	return existingStation, nil
 }
 
 // DeleteStation handles the business logic for deleting a station by its ID.
@@ -148,7 +182,6 @@ func (s *StationServiceImpl) ListStationsByProject(
 ) ([]*models.Station, *exception.AppError) {
 	stations, appErr := s.stationRepo.ListByProject(ctx, projectID)
 	if appErr != nil {
-		// If no stations are found, the repo should return ErrNotFound.
 		if appErr.Code == exception.ErrNotFound {
 			return []*models.Station{}, nil // Return empty slice if no stations found
 		}

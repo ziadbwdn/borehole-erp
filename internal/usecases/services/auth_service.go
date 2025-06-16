@@ -3,37 +3,37 @@ package services
 import (
 	"boreholedata-ms/internal/api/dto"
 	"boreholedata-ms/internal/exception"
-	"boreholedata-ms/internal/interfaces/contract"
+	"boreholedata-ms/internal/interfaces/contract" // Assuming this is the correct path to your contract
 	"boreholedata-ms/internal/models"
 	"boreholedata-ms/internal/utils"
 	"boreholedata-ms/pkg/auth"
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/bcrypt" // Correct import for bcrypt
 )
 
 const (
-	minPasswordLength = 12
+	minPasswordLength            = 12
+	accessTokenExpiry            = 15 * time.Minute   // Short-lived access token
+	refreshTokenExpiry           = 7 * 24 * time.Hour // Long-lived refresh token (e.g., 7 days)
+	passwordResetTokenExpiry     = 1 * time.Hour      // Password reset token expiry
+	emailVerificationTokenExpiry = 24 * time.Hour     // Email verification token expiry
 )
 
 // AuthServiceImpl implements the contract.AuthService interface.
 type AuthServiceImpl struct {
-	userRepo    contract.UserRepository
-	jwtSecret   string
-	tokenExpiry time.Duration
+	userRepo  contract.UserRepository
+	jwtSecret string
 }
 
 // NewAuthService creates a new instance of AuthServiceImpl.
 func NewAuthService(userRepo contract.UserRepository, jwtSecret string) contract.AuthService {
 	return &AuthServiceImpl{
-		userRepo:    userRepo,
-		jwtSecret:   jwtSecret,
-		tokenExpiry: 24 * time.Hour, // Default token expiry
+		userRepo:  userRepo,
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -43,40 +43,52 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req dto.RegisterRequest)
 		return nil, exception.NewValidationError("password requirements not met", err.Error())
 	}
 
-	existingUser, err := s.userRepo.GetUserByUsername(ctx, req.Username)
-	if err != nil {
-		// Check if the error is a NotFoundError from the repository.
-		var appErr *exception.AppError
-		if errors.As(err, &appErr) && appErr.Code == exception.ErrNotFound {
-			// User not found, which is expected for a new registration. Continue.
-		} else {
-			// It's a different kind of error from the database.
-			return nil, exception.NewDatabaseError("user lookup failed during registration", err)
-		}
-	} else if existingUser != nil {
-		// User was found, meaning username already exists.
+	// Check if username already exists
+	_, appErr := s.userRepo.GetUserByUsername(ctx, req.Username)
+	if appErr == nil { // User found, meaning username already exists
 		return nil, exception.NewValidationError("username already exists")
+	}
+	if appErr.Code != exception.ErrNotFound { // If it's not a NotFoundError, it's a database error
+		return nil, appErr // Propagate the database error directly
+	}
+
+	// Check if email already exists
+	_, appErr = s.userRepo.GetUserByEmail(ctx, req.Email)
+	if appErr == nil { // User found, meaning email already exists
+		return nil, exception.NewValidationError("email already exists")
+	}
+	if appErr.Code != exception.ErrNotFound { // If it's not a NotFoundError, it's a database error
+		return nil, appErr // Propagate the database error directly
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
+		// **** FIX for bcrypt error ****
 		return nil, exception.NewInternalError("password hashing failed", err)
 	}
 
+	userRole := models.UserRole(req.Role)
+	switch userRole {
+	case models.RoleAdmin, models.RoleGeologist, models.RoleEngineer, models.RoleLabTechnician, models.RoleGuest:
+		// Valid roles
+	default:
+		return nil, exception.NewValidationError("invalid role specified")
+	}
+
 	user := &models.User{
-		ID:           utils.NewBinaryUUID(), // Generate UUID for new user
+		ID:           utils.NewBinaryUUID(),
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
 		FullName:     req.FullName,
-		Role:         models.RoleGeologist, // Default role for new registrations
+		Role:         userRole,
 		IsActive:     true,
-		CreatedAt:    time.Now(), // Set creation timestamp
-		UpdatedAt:    time.Now(), // Set update timestamp
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
-	if err := s.userRepo.CreateUser(ctx, user); err != nil {
-		return nil, exception.NewDatabaseError("user creation failed", err)
+	if appErr := s.userRepo.CreateUser(ctx, user); appErr != nil {
+		return nil, appErr
 	}
 
 	return &dto.ProfileResponse{
@@ -90,93 +102,160 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req dto.RegisterRequest)
 	}, nil
 }
 
-// Login handles user authentication and token generation.
+// Login handles user authentication and token generation with specific error feedback.
 func (s *AuthServiceImpl) Login(ctx context.Context, req dto.LoginRequest) (*dto.TokenResponse, *exception.AppError) {
-	user, err := s.userRepo.GetUserByUsername(ctx, req.Username)
-	if err != nil {
-		// Check for NotFoundError specifically.
-		var appErr *exception.AppError
-		if errors.As(err, &appErr) && appErr.Code == exception.ErrNotFound {
-			return nil, exception.NewAuthError("invalid credentials")
+	// Step 1: Attempt to find the user by username.
+	user, appErr := s.userRepo.GetUserByUsername(ctx, req.Username)
+	if appErr != nil {
+		if appErr.Code == exception.ErrNotFound {
+			// CASE 1: USER NOT FOUND
+			// Return the specific error message as requested.
+			return nil, exception.NewAuthError(
+				"account not found",
+				"please check your username or register",
+			)
 		}
-		// Other database errors.
-		return nil, exception.NewDatabaseError("user lookup failed during login", err)
+		// Propagate other errors (e.g., database connection issue).
+		return nil, appErr
 	}
 
+	// Step 2: Check if the found user's account is active.
 	if !user.IsActive {
-		return nil, exception.NewAuthError("account disabled")
+		// This error is also specific and correct.
+		return nil, exception.NewAuthError("account is disabled")
 	}
 
+	// Step 3: Compare the provided password with the stored hash.
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		return nil, exception.NewAuthError("invalid credentials")
+		// CASE 2: WRONG PASSWORD
+		// The user was found, but the password was incorrect. Return the specific error.
+		return nil, exception.NewAuthError(
+			"invalid credentials",
+			"Incorrect password. Please try again",
+		)
 	}
 
-	// Generate JWT token using the auth utility
-	token, err := auth.GenerateToken(user.ID, string(user.Role), s.jwtSecret, s.tokenExpiry)
+	// --- If we reach here, the login is successful ---
+	// The rest of the logic remains the same as it's already correct.
+
+	// Step 4: Generate tokens.
+	accessToken, err := auth.GenerateAccessToken(user.ID, string(user.Role), s.jwtSecret, accessTokenExpiry)
 	if err != nil {
-		return nil, exception.NewInternalError("token generation failed", err)
+		return nil, exception.NewInternalError("access token generation failed", err)
+	}
+	refreshToken, err := auth.GenerateRefreshToken(user.ID, s.jwtSecret, refreshTokenExpiry)
+	if err != nil {
+		return nil, exception.NewInternalError("refresh token generation failed", err)
 	}
 
+	// Step 5: Hash and save the refresh token.
+	refreshTokenHash := auth.HashToken(refreshToken)
+	refreshExpiresAt := time.Now().Add(refreshTokenExpiry)
+	if appErr = s.userRepo.SaveRefreshToken(ctx, user.ID, refreshTokenHash, refreshExpiresAt); appErr != nil {
+		return nil, appErr
+	}
+
+	// Step 6: Update last login time safely.
+	if updateErr := s.userRepo.UpdateLastLogin(ctx, user.ID); updateErr != nil {
+		fmt.Printf("Warning: Failed to update last login for user %s: %v\n", user.ID.String(), updateErr)
+	}
+
+	// Step 7: Return the successful token response.
 	return &dto.TokenResponse{
-		AccessToken: token,
-		ExpiresAt:   time.Now().Add(s.tokenExpiry),
-		TokenType:   "Bearer",
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresAt:    time.Now().Add(accessTokenExpiry),
+		TokenType:    "Bearer",
 	}, nil
 }
 
-// RefreshToken re-issues a new access token if the provided token is valid.
-func (s *AuthServiceImpl) RefreshToken(ctx context.Context, token string) (string, *exception.AppError) {
-	// Validate the provided token (assumed to be a refresh token or an expired access token for re-issuance)
-	claims, err := auth.ValidateToken(token, s.jwtSecret)
+// RefreshToken re-issues a new access token and a new refresh token if the provided refresh token is valid.
+func (s *AuthServiceImpl) RefreshToken(ctx context.Context, req dto.RefreshRequest) (*dto.RefreshResponse, *exception.AppError) {
+	// 1. Validate the provided Refresh Token (JWT validation)
+	claims, err := auth.ValidateToken(req.RefreshToken, s.jwtSecret)
 	if err != nil {
-		return "", exception.NewAuthError("Invalid or expired refresh token")
+		return nil, exception.NewAuthError(fmt.Sprintf("Invalid refresh token: %v", err))
 	}
 
-	// Re-generate a new access token
-	newToken, err := auth.GenerateAccessToken(claims.UserID, claims.Role, s.jwtSecret, s.tokenExpiry)
-	if err != nil {
-		return "", exception.NewInternalError("Failed to generate new access token", err)
+	// Ensure it's a refresh token type
+	if claims.Type != "refresh" {
+		return nil, exception.NewAuthError("Provided token is not a refresh token")
 	}
-	return newToken, nil
+
+	// 2. Retrieve the user from the database
+	user, appErr := s.userRepo.GetUserByID(ctx, claims.UserID)
+	if appErr != nil {
+		if appErr.Code == exception.ErrNotFound {
+			return nil, exception.NewAuthError("User not found for refresh token")
+		}
+		return nil, appErr
+	}
+	if !user.IsActive {
+		return nil, exception.NewAuthError("Account disabled")
+	}
+
+	// 3. Compare the provided refresh token's SHA256 hash with the hash stored in the database
+	providedRefreshTokenHash := auth.HashToken(req.RefreshToken)
+	if user.RefreshToken == nil || *user.RefreshToken != providedRefreshTokenHash {
+		_ = s.userRepo.ClearRefreshToken(ctx, user.ID)
+		return nil, exception.NewAuthError("Invalid or revoked refresh token")
+	}
+
+	// 4. Check if the refresh token in the database has expired
+	if user.RefreshTokenExpiresAt == nil || user.RefreshTokenExpiresAt.Before(time.Now()) {
+		_ = s.userRepo.ClearRefreshToken(ctx, user.ID)
+		return nil, exception.NewAuthError("Refresh token expired in database")
+	}
+
+	// 5. Generate new Access Token
+	newAccessToken, err := auth.GenerateAccessToken(user.ID, string(user.Role), s.jwtSecret, accessTokenExpiry)
+	if err != nil {
+		return nil, exception.NewInternalError("failed to generate new access token", err)
+	}
+
+	// 6. Generate new Refresh Token (Refresh Token Rotation)
+	newRefreshToken, err := auth.GenerateRefreshToken(user.ID, s.jwtSecret, refreshTokenExpiry)
+	if err != nil {
+		return nil, exception.NewInternalError("failed to generate new refresh token", err)
+	}
+
+	// 7. Hash and save the new refresh token to the database
+	newRefreshTokenHash := auth.HashToken(newRefreshToken)
+	newRefreshExpiresAt := time.Now().Add(refreshTokenExpiry)
+	if appErr = s.userRepo.SaveRefreshToken(ctx, user.ID, newRefreshTokenHash, newRefreshExpiresAt); appErr != nil {
+		return nil, appErr
+	}
+
+	return &dto.RefreshResponse{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+		ExpiresAt:    time.Now().Add(accessTokenExpiry),
+		TokenType:    "Bearer",
+	}, nil
 }
 
 // VerifyToken validates a JWT token string and returns the UserID and Role from its claims.
 func (s *AuthServiceImpl) VerifyToken(ctx context.Context, tokenString string) (utils.BinaryUUID, string, *exception.AppError) {
-	// Remove "Bearer " prefix if present.
-	if strings.HasPrefix(tokenString, "Bearer ") {
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
-	}
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 	claims, err := auth.ValidateToken(tokenString, s.jwtSecret)
 	if err != nil {
-		// Handle specific JWT errors using error checking methods from jwt/v5
-		if errors.Is(err, jwt.ErrTokenMalformed) {
-			return utils.BinaryUUID{}, "", exception.NewAuthError("Invalid token format")
-		} else if errors.Is(err, jwt.ErrTokenExpired) {
-			return utils.BinaryUUID{}, "", exception.NewAuthError("Token expired")
-		} else if errors.Is(err, jwt.ErrTokenNotValidYet) {
-			return utils.BinaryUUID{}, "", exception.NewAuthError("Token not valid yet")
-		} else if errors.Is(err, jwt.ErrSignatureInvalid) {
-			return utils.BinaryUUID{}, "", exception.NewAuthError("Invalid token signature")
-		}
-		// Catch any other parsing errors
+		// **** FIX for auth.GenerateToken typo -> using auth.ValidateToken ****
 		return utils.BinaryUUID{}, "", exception.NewAuthError(fmt.Sprintf("Invalid token: %v", err))
 	}
+	// Ensure it's an access token
+	if claims.Type != "access" {
+		return utils.BinaryUUID{}, "", exception.NewAuthError("Provided token is not an access token")
+	}
 
-	// Token is valid, return UserID and Role
 	return claims.UserID, claims.Role, nil
 }
 
 // GetUserProfile retrieves a user's profile by their ID.
 func (s *AuthServiceImpl) GetUserProfile(ctx context.Context, userID utils.BinaryUUID) (*dto.ProfileResponse, *exception.AppError) {
-	user, err := s.userRepo.GetUserByID(ctx, userID)
-	if err != nil {
-		// GetUserByID returns standard error, so we check if it's an AppError.
-		var appErr *exception.AppError
-		if errors.As(err, &appErr) {
-			return nil, appErr // Propagate NotFoundError or DatabaseError from repo
-		}
-		return nil, exception.NewInternalError("failed to retrieve user profile", err)
+	user, appErr := s.userRepo.GetUserByID(ctx, userID)
+	if appErr != nil {
+		return nil, appErr
 	}
 
 	return &dto.ProfileResponse{
@@ -192,17 +271,11 @@ func (s *AuthServiceImpl) GetUserProfile(ctx context.Context, userID utils.Binar
 
 // UpdateUserProfile updates a user's profile.
 func (s *AuthServiceImpl) UpdateUserProfile(ctx context.Context, userID utils.BinaryUUID, req dto.UpdateProfileRequest) (*dto.ProfileResponse, *exception.AppError) {
-	// First, retrieve the existing user to ensure they exist and to get current values.
-	user, err := s.userRepo.GetUserByID(ctx, userID)
-	if err != nil {
-		var appErr *exception.AppError
-		if errors.As(err, &appErr) {
-			return nil, appErr // Propagate NotFoundError or DatabaseError from repo
-		}
-		return nil, exception.NewInternalError("failed to retrieve user for update", err)
+	user, appErr := s.userRepo.GetUserByID(ctx, userID)
+	if appErr != nil {
+		return nil, appErr
 	}
 
-	// Apply updates only if the corresponding field is provided in the request (not nil).
 	if req.Email != nil {
 		user.Email = *req.Email
 	}
@@ -210,27 +283,20 @@ func (s *AuthServiceImpl) UpdateUserProfile(ctx context.Context, userID utils.Bi
 		user.FullName = *req.FullName
 	}
 	if req.Password != nil && *req.Password != "" {
-		// Validate and hash the new password if provided.
 		if err := validatePassword(*req.Password); err != nil {
 			return nil, exception.NewValidationError("new password requirements not met", err.Error())
 		}
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, exception.NewInternalError("new password hashing failed", err)
+		hashedPassword, hashErr := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
+		if hashErr != nil {
+			return nil, exception.NewInternalError("new password hashing failed", hashErr)
 		}
 		user.PasswordHash = string(hashedPassword)
 	}
 
-	// Call the repository to update the user.
-	if err := s.userRepo.UpdateUser(ctx, user); err != nil {
-		var appErr *exception.AppError
-		if errors.As(err, &appErr) {
-			return nil, appErr // Propagate NotFoundError or DatabaseError from repo
-		}
-		return nil, exception.NewInternalError("failed to update user profile", err)
+	if appErr := s.userRepo.UpdateUser(ctx, user); appErr != nil {
+		return nil, appErr
 	}
 
-	// Return the updated profile response.
 	return &dto.ProfileResponse{
 		ID:        user.ID,
 		Username:  user.Username,
@@ -242,11 +308,155 @@ func (s *AuthServiceImpl) UpdateUserProfile(ctx context.Context, userID utils.Bi
 	}, nil
 }
 
-// Logout handles token invalidation
+// SendPasswordReset sends a password reset email to the user.
+func (s *AuthServiceImpl) SendPasswordReset(ctx context.Context, email string) *exception.AppError {
+	user, appErr := s.userRepo.GetUserByEmail(ctx, email)
+	if appErr != nil {
+		if appErr.Code == exception.ErrNotFound {
+			fmt.Printf("Attempted password reset for non-existent email: %s\n", email)
+			return nil
+		}
+		return appErr
+	}
+
+	// Generate a JWT for password reset
+	resetToken, err := auth.GeneratePasswordResetToken(user.ID, s.jwtSecret, passwordResetTokenExpiry)
+	if err != nil {
+		return exception.NewInternalError("failed to generate password reset token", err)
+	}
+
+	// Hash the JWT reset token using SHA256 for storage
+	hashedResetToken := auth.HashToken(resetToken)
+	tokenExpiry := time.Now().Add(passwordResetTokenExpiry)
+
+	user.PasswordResetToken = &hashedResetToken
+	user.PasswordResetSentAt = &tokenExpiry
+
+	if appErr := s.userRepo.UpdateUser(ctx, user); appErr != nil {
+		return appErr
+	}
+
+	// TODO: Integrate with an email sending service here
+	fmt.Printf("Password reset link for %s: YOUR_FRONTEND_URL/reset-password?token=%s\n", email, resetToken)
+
+	return nil
+}
+
+// ResetPassword resets the user's password using a valid token.
+func (s *AuthServiceImpl) ResetPassword(ctx context.Context, token, newPw string) *exception.AppError {
+	if err := validatePassword(newPw); err != nil {
+		return exception.NewValidationError("new password requirements not met", err.Error())
+	}
+
+	// 1. Validate the provided reset token (JWT validation)
+	claims, err := auth.ValidateToken(token, s.jwtSecret)
+	if err != nil {
+		return exception.NewAuthError(fmt.Sprintf("Invalid password reset token: %v", err))
+	}
+
+	// Ensure it's a reset token type
+	if claims.Type != "reset" {
+		return exception.NewAuthError("Provided token is not a password reset token")
+	}
+
+	// 2. Retrieve the user from the database
+	user, appErr := s.userRepo.GetUserByID(ctx, claims.UserID)
+	if appErr != nil {
+		if appErr.Code == exception.ErrNotFound {
+			return exception.NewAuthError("User not found for password reset")
+		}
+		return appErr
+	}
+
+	// 3. Compare the provided token's SHA256 hash with the hash stored in the database
+	providedTokenHash := auth.HashToken(token)
+	if user.PasswordResetToken == nil || *user.PasswordResetToken != providedTokenHash {
+		return exception.NewAuthError("Invalid or already used password reset token")
+	}
+
+	// 4. Check if the reset token in the database has expired (redundant if JWT validation caught it but good for robustness)
+	if user.PasswordResetSentAt == nil || user.PasswordResetSentAt.Before(time.Now()) {
+		_ = s.userRepo.ClearPasswordResetToken(ctx, user.ID)
+		return exception.NewAuthError("Password reset token expired in database")
+	}
+
+	// Hash new password
+	hashedPassword, hashErr := bcrypt.GenerateFromPassword([]byte(newPw), bcrypt.DefaultCost)
+	if hashErr != nil {
+		return exception.NewInternalError("failed to hash new password", hashErr)
+	}
+	user.PasswordHash = string(hashedPassword)
+
+	// Invalidate the reset token after successful use
+	if appErr := s.userRepo.ClearPasswordResetToken(ctx, user.ID); appErr != nil {
+		fmt.Printf("Warning: Failed to clear password reset token for user %s: %v\n", user.ID.String(), appErr)
+	}
+
+	// Update user's password (this implicitly updates UpdatedAt)
+	if appErr := s.userRepo.UpdateUser(ctx, user); appErr != nil {
+		return appErr
+	}
+
+	return nil
+}
+
+// VerifyEmail marks a user's email as verified.
+func (s *AuthServiceImpl) VerifyEmail(ctx context.Context, token string) *exception.AppError {
+	// 1. Validate the provided email verification token (JWT validation)
+	claims, err := auth.ValidateToken(token, s.jwtSecret)
+	if err != nil {
+		return exception.NewAuthError(fmt.Sprintf("Invalid email verification token: %v", err))
+	}
+
+	// Ensure it's an email verification token type
+	if claims.Type != "email_verify" {
+		return exception.NewAuthError("Provided token is not an email verification token")
+	}
+
+	// 2. Retrieve the user from the database
+	user, appErr := s.userRepo.GetUserByID(ctx, claims.UserID)
+	if appErr != nil {
+		if appErr.Code == exception.ErrNotFound {
+			return exception.NewAuthError("User not found for email verification")
+		}
+		return appErr
+	}
+
+	if user.EmailVerified {
+		return exception.NewValidationError("Email already verified")
+	}
+
+	user.EmailVerified = true
+	if appErr := s.userRepo.UpdateUser(ctx, user); appErr != nil {
+		return appErr
+	}
+	// TODO: Consider clearing the email verification token hash from DB after successful use if you store it.
+
+	return nil
+}
+
+// Logout handles token invalidation (clearing refresh token from DB).
 func (s *AuthServiceImpl) Logout(ctx context.Context, token string) *exception.AppError {
-	// In a real application, this would typically invalidate the token (e.g., add to a blacklist).
-	// For this example, we're simply acknowledging the logout.
-	return nil // Always returns nil for now, as no actual invalidation is done
+	// We assume the 'token' provided here is the refresh token the client wants to invalidate.
+	// 1. Validate the provided Refresh Token (JWT validation) to get UserID
+	claims, err := auth.ValidateToken(token, s.jwtSecret)
+	if err != nil {
+		fmt.Printf("Warning: Attempted logout with invalid token: %v\n", err)
+		return exception.NewAuthError("Invalid token provided for logout")
+	}
+
+	// Ensure it's a refresh token type
+	if claims.Type != "refresh" {
+		fmt.Printf("Warning: Attempted logout with non-refresh token for user %s\n", claims.UserID.String())
+		return exception.NewAuthError("Provided token is not a refresh token")
+	}
+
+	// 2. Clear the specific refresh token hash from the database for this user
+	if appErr := s.userRepo.ClearRefreshToken(ctx, claims.UserID); appErr != nil {
+		return appErr
+	}
+
+	return nil
 }
 
 // validatePassword checks if the password meets the minimum length and complexity requirements.
@@ -270,7 +480,7 @@ func validatePassword(password string) error {
 			hasLower = true
 		case '0' <= char && char <= '9':
 			hasNumber = true
-		case strings.ContainsRune("!@#$%^&*()_+-=[]{}|;:,.<>?/", char):
+		case strings.ContainsRune("!@#$%^&*()_+-=[]{}|;:,.<>?/", char): // Common special characters
 			hasSpecial = true
 		}
 	}

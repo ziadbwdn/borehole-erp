@@ -4,8 +4,8 @@ import (
 	"boreholedata-ms/internal/api/dto"
 	"boreholedata-ms/internal/exception"
 	"boreholedata-ms/internal/interfaces/contract"
-	"boreholedata-ms/internal/models"
-	"boreholedata-ms/internal/utils" // For BinaryUUID, StringToGormDecimal, GormDecimalToString
+	"boreholedata-ms/internal/models" // Import models to access UserRole constants
+	"boreholedata-ms/internal/utils"  // For BinaryUUID, StringToGormDecimal, GormDecimalToString
 	"boreholedata-ms/pkg/gin_helpers"
 	"boreholedata-ms/pkg/http_response"
 	"net/http"
@@ -36,12 +36,19 @@ func (h *LithologyHandler) CreateLithologyLog(c *gin.Context) {
 		return
 	}
 
+	// --- Auth: Get User ID and Role from Context ---
 	createdBy, appErr := gin_helpers.GetUserIDFromContext(c)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
-	_ = createdBy // Use blank identifier to suppress "declared and not used" warning for now
+
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	// --- End Auth ---
 
 	// Convert string decimal values from DTO to utils.GormDecimal
 	depthFromGd, appErr := utils.StringToGormDecimal(req.DepthFrom)
@@ -88,7 +95,9 @@ func (h *LithologyHandler) CreateLithologyLog(c *gin.Context) {
 		LoggedDate:         req.LoggedDate,
 	}
 
-	createdLog, appErr := h.lithologyService.CreateLog(c.Request.Context(), log, createdBy)
+	// --- Auth: Pass userRole to service ---
+	createdLog, appErr := h.lithologyService.CreateLog(c.Request.Context(), log, createdBy, userRole)
+	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
@@ -175,16 +184,25 @@ func (h *LithologyHandler) UpdateLithologyLog(c *gin.Context) {
 		return
 	}
 
-	// Fetch the existing log to apply updates
-	existingLog, appErr := h.lithologyService.GetLogByID(c.Request.Context(), logID)
+	// --- Auth: Get User Role from Context ---
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
+	// --- End Auth ---
+
+	// Fetch the existing log to apply updates
+	// Note: The service layer's UpdateLog method will also perform checks
+	// and update the existing log directly after fetching it.
+	// We're constructing a partial log here which is then passed to the service.
+	logToUpdate := &models.LithologyLog{
+		ID: logID, // Essential for identifying which log to update
+	}
 
 	// Apply updates from DTO to model, converting string pointers to GormDecimal
 	if req.StationID != nil {
-		existingLog.StationID = *req.StationID
+		logToUpdate.StationID = *req.StationID
 	}
 	if req.DepthFrom != nil {
 		dfGd, err := utils.StringToGormDecimal(*req.DepthFrom)
@@ -192,7 +210,7 @@ func (h *LithologyHandler) UpdateLithologyLog(c *gin.Context) {
 			http_response.HandleAppError(c, err)
 			return
 		}
-		existingLog.DepthFrom = *dfGd
+		logToUpdate.DepthFrom = *dfGd
 	}
 	if req.DepthTo != nil {
 		dtGd, err := utils.StringToGormDecimal(*req.DepthTo)
@@ -200,34 +218,34 @@ func (h *LithologyHandler) UpdateLithologyLog(c *gin.Context) {
 			http_response.HandleAppError(c, err)
 			return
 		}
-		existingLog.DepthTo = *dtGd
+		logToUpdate.DepthTo = *dtGd
 	}
 	if req.LithologyType != nil {
-		existingLog.LithologyType = *req.LithologyType
+		logToUpdate.LithologyType = *req.LithologyType
 	}
 	if req.RockColor != nil {
-		existingLog.RockColor = *req.RockColor
+		logToUpdate.RockColor = *req.RockColor
 	}
 	if req.GrainSize != nil {
-		existingLog.GrainSize = *req.GrainSize
+		logToUpdate.GrainSize = *req.GrainSize
 	}
 	if req.Texture != nil {
-		existingLog.Texture = *req.Texture
+		logToUpdate.Texture = *req.Texture
 	}
 	if req.Structure != nil {
-		existingLog.Structure = *req.Structure
+		logToUpdate.Structure = *req.Structure
 	}
 	if req.Hardness != nil {
-		existingLog.Hardness = *req.Hardness
+		logToUpdate.Hardness = *req.Hardness
 	}
 	if req.Weathering != nil {
-		existingLog.Weathering = *req.Weathering
+		logToUpdate.Weathering = *req.Weathering
 	}
 	if req.Fracturing != nil {
-		existingLog.Fracturing = *req.Fracturing
+		logToUpdate.Fracturing = *req.Fracturing
 	}
 	if req.Description != nil {
-		existingLog.Description = *req.Description
+		logToUpdate.Description = *req.Description
 	}
 	if req.RQDPercentage != nil {
 		rqdGd, err := utils.StringToGormDecimal(*req.RQDPercentage)
@@ -235,7 +253,7 @@ func (h *LithologyHandler) UpdateLithologyLog(c *gin.Context) {
 			http_response.HandleAppError(c, err)
 			return
 		}
-		existingLog.RQDPercentage = *rqdGd
+		logToUpdate.RQDPercentage = *rqdGd
 	}
 	if req.RecoveryPercentage != nil {
 		recGd, err := utils.StringToGormDecimal(*req.RecoveryPercentage)
@@ -243,42 +261,52 @@ func (h *LithologyHandler) UpdateLithologyLog(c *gin.Context) {
 			http_response.HandleAppError(c, err)
 			return
 		}
-		existingLog.RecoveryPercentage = *recGd
+		logToUpdate.RecoveryPercentage = *recGd
 	}
 	if req.LoggedBy != nil {
-		existingLog.LoggedBy = *req.LoggedBy
+		logToUpdate.LoggedBy = *req.LoggedBy
 	}
 	if req.LoggedDate != nil {
-		existingLog.LoggedDate = req.LoggedDate
+		logToUpdate.LoggedDate = req.LoggedDate
 	}
 
-	appErr = h.lithologyService.UpdateLog(c.Request.Context(), existingLog)
+	// --- Auth: Pass userRole to service ---
+	appErr = h.lithologyService.UpdateLog(c.Request.Context(), logToUpdate, userRole)
+	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
+	// After a successful update, fetch the updated log to return the most current state.
+	// This step is important if the service layer modifies fields like `UpdatedAt`.
+	updatedLog, appErr := h.lithologyService.GetLogByID(c.Request.Context(), logID)
+	if appErr != nil {
+		http_response.HandleAppError(c, exception.NewInternalError("Failed to retrieve updated lithology log", appErr))
+		return
+	}
+
 	// Map updated model back to response DTO
 	resp := &dto.LithologyLogResponse{
-		ID:                 existingLog.ID,
-		StationID:          existingLog.StationID,
-		DepthFrom:          utils.GormDecimalToString(&existingLog.DepthFrom),
-		DepthTo:            utils.GormDecimalToString(&existingLog.DepthTo),
-		LithologyType:      existingLog.LithologyType,
-		RockColor:          existingLog.RockColor,
-		GrainSize:          existingLog.GrainSize,
-		Texture:            existingLog.Texture,
-		Structure:          existingLog.Structure,
-		Hardness:           existingLog.Hardness,
-		Weathering:         existingLog.Weathering,
-		Fracturing:         existingLog.Fracturing,
-		Description:        existingLog.Description,
-		RQDPercentage:      utils.GormDecimalToString(&existingLog.RQDPercentage),
-		RecoveryPercentage: utils.GormDecimalToString(&existingLog.RecoveryPercentage),
-		LoggedBy:           existingLog.LoggedBy,
-		LoggedDate:         existingLog.LoggedDate,
-		CreatedAt:          existingLog.CreatedAt,
-		UpdatedAt:          existingLog.UpdatedAt,
+		ID:                 updatedLog.ID,
+		StationID:          updatedLog.StationID,
+		DepthFrom:          utils.GormDecimalToString(&updatedLog.DepthFrom),
+		DepthTo:            utils.GormDecimalToString(&updatedLog.DepthTo),
+		LithologyType:      updatedLog.LithologyType,
+		RockColor:          updatedLog.RockColor,
+		GrainSize:          updatedLog.GrainSize,
+		Texture:            updatedLog.Texture,
+		Structure:          updatedLog.Structure,
+		Hardness:           updatedLog.Hardness,
+		Weathering:         updatedLog.Weathering,
+		Fracturing:         updatedLog.Fracturing,
+		Description:        updatedLog.Description,
+		RQDPercentage:      utils.GormDecimalToString(&updatedLog.RQDPercentage),
+		RecoveryPercentage: utils.GormDecimalToString(&updatedLog.RecoveryPercentage),
+		LoggedBy:           updatedLog.LoggedBy,
+		LoggedDate:         updatedLog.LoggedDate,
+		CreatedAt:          updatedLog.CreatedAt,
+		UpdatedAt:          updatedLog.UpdatedAt,
 	}
 
 	http_response.RespondWithSuccess(c, http.StatusOK, resp)
@@ -292,7 +320,17 @@ func (h *LithologyHandler) DeleteLithologyLog(c *gin.Context) {
 		return // Response already handled
 	}
 
-	appErr = h.lithologyService.DeleteLog(c.Request.Context(), logID)
+	// --- Auth: Get User Role from Context ---
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	// --- End Auth ---
+
+	// --- Auth: Pass userRole to service ---
+	appErr = h.lithologyService.DeleteLog(c.Request.Context(), logID, userRole)
+	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return

@@ -9,7 +9,6 @@ import (
 	"boreholedata-ms/pkg/gin_helpers"
 	"boreholedata-ms/pkg/http_response"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -61,6 +60,12 @@ func (h *StationHandler) CreateStation(c *gin.Context) {
 		return
 	}
 
+	GWLGd, appErr := utils.StringToGormDecimal(req.GWL)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+
 	totalDepthGd, appErr := utils.StringToGormDecimal(req.TotalDepth)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
@@ -75,12 +80,19 @@ func (h *StationHandler) CreateStation(c *gin.Context) {
 		StationType:   req.StationType,
 		Latitude:      *latitudeGd,
 		Longitude:     *longitudeGd,
+		GWL:           *GWLGd,
 		Elevation:     *elevationGd,
 		TotalDepth:    *totalDepthGd,
 		DrillingDate:  req.DrillingDate,
 		GeologistName: req.GeologistName,
 		Notes:         req.Notes,
 	}
+
+	// Map DrillingStatus from DTO to model
+	if req.DrillingStatus != "" {
+		station.DrillingStatus = models.DrillingStatus(req.DrillingStatus)
+	}
+	// If not provided in DTO, GORM's default value ('planned') will be used when inserting.
 
 	createdStation, appErr := h.stationService.CreateStation(c.Request.Context(), station, createdBy)
 	if appErr != nil {
@@ -90,20 +102,22 @@ func (h *StationHandler) CreateStation(c *gin.Context) {
 
 	// Map created model back to response DTO
 	resp := &dto.StationResponse{
-		ID:            createdStation.ID,
-		ProjectID:     createdStation.ProjectID,
-		StationCode:   createdStation.StationCode,
-		StationName:   createdStation.StationName,
-		StationType:   createdStation.StationType,
-		Latitude:      utils.GormDecimalToString(&createdStation.Latitude),
-		Longitude:     utils.GormDecimalToString(&createdStation.Longitude),
-		Elevation:     utils.GormDecimalToString(&createdStation.Elevation),
-		TotalDepth:    utils.GormDecimalToString(&createdStation.TotalDepth),
-		DrillingDate:  createdStation.DrillingDate,
-		GeologistName: createdStation.GeologistName,
-		Notes:         createdStation.Notes,
-		CreatedAt:     createdStation.CreatedAt,
-		UpdatedAt:     createdStation.UpdatedAt,
+		ID:             createdStation.ID,
+		ProjectID:      createdStation.ProjectID,
+		StationCode:    createdStation.StationCode,
+		StationName:    createdStation.StationName,
+		StationType:    createdStation.StationType,
+		Latitude:       utils.GormDecimalToString(&createdStation.Latitude),
+		Longitude:      utils.GormDecimalToString(&createdStation.Longitude),
+		Elevation:      utils.GormDecimalToString(&createdStation.Elevation),
+		GWL:            utils.GormDecimalToString(&createdStation.GWL),
+		TotalDepth:     utils.GormDecimalToString(&createdStation.TotalDepth),
+		DrillingDate:   createdStation.DrillingDate,
+		DrillingStatus: string(createdStation.DrillingStatus), // --- FIX: Direct conversion or use as string ---
+		GeologistName:  createdStation.GeologistName,
+		Notes:          createdStation.Notes,
+		CreatedAt:      createdStation.CreatedAt,
+		UpdatedAt:      createdStation.UpdatedAt,
 	}
 
 	http_response.RespondWithSuccess(c, http.StatusCreated, resp)
@@ -124,20 +138,22 @@ func (h *StationHandler) GetStation(c *gin.Context) {
 	}
 
 	resp := &dto.StationResponse{
-		ID:            station.ID,
-		ProjectID:     station.ProjectID,
-		StationCode:   station.StationCode,
-		StationName:   station.StationName,
-		StationType:   station.StationType,
-		Latitude:      utils.GormDecimalToString(&station.Latitude),
-		Longitude:     utils.GormDecimalToString(&station.Longitude),
-		Elevation:     utils.GormDecimalToString(&station.Elevation),
-		TotalDepth:    utils.GormDecimalToString(&station.TotalDepth),
-		DrillingDate:  station.DrillingDate,
-		GeologistName: station.GeologistName,
-		Notes:         station.Notes,
-		CreatedAt:     station.CreatedAt,
-		UpdatedAt:     station.UpdatedAt,
+		ID:             station.ID,
+		ProjectID:      station.ProjectID,
+		StationCode:    station.StationCode,
+		StationName:    station.StationName,
+		StationType:    station.StationType,
+		Latitude:       utils.GormDecimalToString(&station.Latitude),
+		Longitude:      utils.GormDecimalToString(&station.Longitude),
+		Elevation:      utils.GormDecimalToString(&station.Elevation),
+		TotalDepth:     utils.GormDecimalToString(&station.TotalDepth),
+		GWL:            utils.GormDecimalToString(&station.GWL),
+		DrillingDate:   station.DrillingDate,
+		DrillingStatus: string(station.DrillingStatus), // --- FIX: Direct conversion or use as string ---
+		GeologistName:  station.GeologistName,
+		Notes:          station.Notes,
+		CreatedAt:      station.CreatedAt,
+		UpdatedAt:      station.UpdatedAt,
 	}
 
 	http_response.RespondWithSuccess(c, http.StatusOK, resp)
@@ -146,9 +162,10 @@ func (h *StationHandler) GetStation(c *gin.Context) {
 // UpdateStation handles updating an existing station.
 // @Router /api/stations/{id} [put]
 func (h *StationHandler) UpdateStation(c *gin.Context) {
+	// Step 1: Get Station ID and request body.
 	stationID, appErr := gin_helpers.ParseIDFromContext(c, "id", "station")
 	if appErr != nil {
-		return // Response already handled
+		return
 	}
 
 	var req dto.UpdateStationRequest
@@ -158,97 +175,16 @@ func (h *StationHandler) UpdateStation(c *gin.Context) {
 		return
 	}
 
-	// Fetch the existing station to apply updates
-	existingStation, appErr := h.stationService.GetStation(c.Request.Context(), stationID)
+	// Step 2: Call the service with the ID and the DTO. No mapping, no model creation.
+	updatedStation, appErr := h.stationService.UpdateStation(c.Request.Context(), stationID, &req)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	// Apply updates from DTO to model, converting string pointers to GormDecimal
-	if req.StationCode != nil {
-		existingStation.StationCode = *req.StationCode
-	}
-	if req.StationName != nil {
-		existingStation.StationName = *req.StationName
-	}
-	if req.StationType != nil {
-		existingStation.StationType = *req.StationType
-	}
-	if req.Latitude != nil {
-		latGd, err := utils.StringToGormDecimal(*req.Latitude)
-		if err != nil {
-			http_response.HandleAppError(c, err)
-			return
-		}
-		existingStation.Latitude = *latGd // Assign the GormDecimal struct
-	}
-	if req.Longitude != nil {
-		lonGd, err := utils.StringToGormDecimal(*req.Longitude)
-		if err != nil {
-			http_response.HandleAppError(c, err)
-			return
-		}
-		existingStation.Longitude = *lonGd // Assign the GormDecimal struct
-	}
-	if req.Elevation != nil {
-		elevGd, err := utils.StringToGormDecimal(*req.Elevation)
-		if err != nil {
-			http_response.HandleAppError(c, err)
-			return
-		}
-		existingStation.Elevation = *elevGd // Assign the GormDecimal struct
-	}
-	if req.TotalDepth != nil {
-		tdGd, err := utils.StringToGormDecimal(*req.TotalDepth)
-		if err != nil {
-			http_response.HandleAppError(c, err)
-			return
-		}
-		existingStation.TotalDepth = *tdGd // Assign the GormDecimal struct
-	}
-
-	// pointer handling
-	var drillingDateNewptr *time.Time
-	if !req.DrillingDate.IsZero() {
-		drillingDateNewptr = req.DrillingDate
-	}
-
-	if req.DrillingDate != nil {
-		existingStation.DrillingDate = drillingDateNewptr
-	}
-
-	if req.GeologistName != nil {
-		existingStation.GeologistName = *req.GeologistName
-	}
-	if req.Notes != nil {
-		existingStation.Notes = *req.Notes
-	}
-
-	appErr = h.stationService.UpdateStation(c.Request.Context(), existingStation)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
-	}
-
-	// Map updated model back to response DTO
-	resp := &dto.StationResponse{
-		ID:            existingStation.ID,
-		ProjectID:     existingStation.ProjectID,
-		StationCode:   existingStation.StationCode,
-		StationName:   existingStation.StationName,
-		StationType:   existingStation.StationType,
-		Latitude:      utils.GormDecimalToString(&existingStation.Latitude),
-		Longitude:     utils.GormDecimalToString(&existingStation.Longitude),
-		Elevation:     utils.GormDecimalToString(&existingStation.Elevation),
-		TotalDepth:    utils.GormDecimalToString(&existingStation.TotalDepth),
-		DrillingDate:  drillingDateNewptr,
-		GeologistName: existingStation.GeologistName,
-		Notes:         existingStation.Notes,
-		CreatedAt:     existingStation.CreatedAt,
-		UpdatedAt:     existingStation.UpdatedAt,
-	}
-
+	// Step 3: Map the final model to a clean response DTO.
+	// This also fixes the ugly JSON output you were seeing for decimal fields.
+	resp := dto.MapStationToResponse(updatedStation)
 	http_response.RespondWithSuccess(c, http.StatusOK, resp)
 }
 
@@ -287,24 +223,26 @@ func (h *StationHandler) ListStationsByProject(c *gin.Context) {
 	stationResponses := make([]dto.StationResponse, len(stations))
 	for i, s := range stations {
 		resp := dto.StationResponse{
-			ID:            s.ID,
-			ProjectID:     s.ProjectID,
-			StationCode:   s.StationCode,
-			StationName:   s.StationName,
-			StationType:   s.StationType,
-			Latitude:      utils.GormDecimalToString(&s.Latitude),
-			Longitude:     utils.GormDecimalToString(&s.Longitude),
-			Elevation:     utils.GormDecimalToString(&s.Elevation),
-			TotalDepth:    utils.GormDecimalToString(&s.TotalDepth),
-			DrillingDate:  s.DrillingDate,
-			GeologistName: s.GeologistName,
-			Notes:         s.Notes,
-			CreatedAt:     s.CreatedAt,
-			UpdatedAt:     s.UpdatedAt,
+			ID:             s.ID,
+			ProjectID:      s.ProjectID,
+			StationCode:    s.StationCode,
+			StationName:    s.StationName,
+			StationType:    s.StationType,
+			Latitude:       utils.GormDecimalToString(&s.Latitude),
+			Longitude:      utils.GormDecimalToString(&s.Longitude),
+			Elevation:      utils.GormDecimalToString(&s.Elevation),
+			GWL:            utils.GormDecimalToString(&s.GWL),
+			TotalDepth:     utils.GormDecimalToString(&s.TotalDepth),
+			DrillingDate:   s.DrillingDate,
+			DrillingStatus: string(s.DrillingStatus), // --- FIX: Direct conversion or use as string ---
+			GeologistName:  s.GeologistName,
+			Notes:          s.Notes,
+			CreatedAt:      s.CreatedAt,
+			UpdatedAt:      s.UpdatedAt,
 		}
 		// Assuming you might want to include ProjectName if the Project relationship is loaded
 		// if s.Project != nil {
-		// 	resp.ProjectName = s.Project.Name
+		//  resp.ProjectName = s.Project.Name
 		// }
 		stationResponses[i] = resp
 	}

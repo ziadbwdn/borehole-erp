@@ -5,23 +5,27 @@ import (
 	"boreholedata-ms/internal/exception"
 	"boreholedata-ms/internal/interfaces/contract"
 	"boreholedata-ms/internal/models"
-	"boreholedata-ms/internal/utils" // For BinaryUUID, StringToGormDecimal, GormDecimalToString
 	"boreholedata-ms/pkg/gin_helpers"
 	"boreholedata-ms/pkg/http_response"
 	"net/http"
+	"time"
 
+	// Import time for handling date/time fields
 	"github.com/gin-gonic/gin"
 )
 
 // ProjectHandler handles HTTP requests related to project management.
 type ProjectHandler struct {
 	projectService contract.ProjectService
+	// If GetProjectStations needs StationService, it should be here too
+	// stationService contract.StationService
 }
 
 // NewProjectHandler creates and returns a new instance of ProjectHandler.
 func NewProjectHandler(projectService contract.ProjectService) *ProjectHandler {
 	return &ProjectHandler{
 		projectService: projectService,
+		// stationService: stationService, // Uncomment if needed
 	}
 }
 
@@ -41,33 +45,25 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		return
 	}
 
-	// Convert string decimal values from DTO to utils.GormDecimal
-	latitudeGd, appErr := utils.StringToGormDecimal(req.Latitude)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	// --- FIX: Correctly map time.Time from DTO to *time.Time in Model ---
+	var projectStartDate *time.Time
+	if !req.StartDate.IsZero() {
+		projectStartDate = &req.StartDate
 	}
 
-	longitudeGd, appErr := utils.StringToGormDecimal(req.Longitude)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	var projectEndDate *time.Time
+	if !req.EndDate.IsZero() {
+		projectEndDate = &req.EndDate
 	}
-
-	elevationGd, appErr := utils.StringToGormDecimal(req.Elevation)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
-	}
+	// --- END FIX ---
 
 	// Map DTO to model
 	project := &models.Project{
 		Name:        req.Name,
 		Description: req.Description,
 		Location:    req.Location,
-		Latitude:    *latitudeGd,  // Assign the GormDecimal struct
-		Longitude:   *longitudeGd, // Assign the GormDecimal struct
-		Elevation:   *elevationGd, // Assign the GormDecimal struct
+		StartDate:   projectStartDate, // Assign the correctly mapped *time.Time
+		EndDate:     projectEndDate,   // Assign the correctly mapped *time.Time
 	}
 
 	createdProject, appErr := h.projectService.CreateProject(c.Request.Context(), project, createdBy)
@@ -82,9 +78,6 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		Name:        createdProject.Name,
 		Description: createdProject.Description,
 		Location:    createdProject.Location,
-		Latitude:    utils.GormDecimalToString(&createdProject.Latitude),  // Use GormDecimalToString
-		Longitude:   utils.GormDecimalToString(&createdProject.Longitude), // Use GormDecimalToString
-		Elevation:   utils.GormDecimalToString(&createdProject.Elevation), // Use GormDecimalToString
 		StartDate:   createdProject.StartDate,
 		EndDate:     createdProject.EndDate,
 		Status:      createdProject.Status,
@@ -115,9 +108,6 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 		Name:        project.Name,
 		Description: project.Description,
 		Location:    project.Location,
-		Latitude:    utils.GormDecimalToString(&project.Latitude),
-		Longitude:   utils.GormDecimalToString(&project.Longitude),
-		Elevation:   utils.GormDecimalToString(&project.Elevation),
 		StartDate:   project.StartDate,
 		EndDate:     project.EndDate,
 		Status:      project.Status,
@@ -144,82 +134,82 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 		return
 	}
 
-	// Fetch the existing project to apply updates
-	existingProject, appErr := h.projectService.GetProject(c.Request.Context(), projectID)
+	// Get user role from context
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	// Apply updates from DTO to model, converting string pointers to GormDecimal
+	// Create a new Project model to hold only the fields intended for update.
+	// The service layer will fetch the full existing project and apply these changes.
+	projectToUpdate := &models.Project{
+		ID: projectID, // Crucial: Set the ID of the project to be updated
+	}
+
 	if req.Name != nil {
-		existingProject.Name = *req.Name
+		projectToUpdate.Name = *req.Name
 	}
 	if req.Description != nil {
-		existingProject.Description = *req.Description
+		projectToUpdate.Description = *req.Description
 	}
 	if req.Location != nil {
-		existingProject.Location = *req.Location
-	}
-	if req.Latitude != nil {
-		latGd, err := utils.StringToGormDecimal(*req.Latitude)
-		if err != nil {
-			http_response.HandleAppError(c, err)
-			return
-		}
-		existingProject.Latitude = *latGd // Assign the GormDecimal struct
-	}
-	if req.Longitude != nil {
-		lonGd, err := utils.StringToGormDecimal(*req.Longitude)
-		if err != nil {
-			http_response.HandleAppError(c, err)
-			return
-		}
-		existingProject.Longitude = *lonGd // Assign the GormDecimal struct
-	}
-	if req.Elevation != nil {
-		elevGd, err := utils.StringToGormDecimal(*req.Elevation)
-		if err != nil {
-			http_response.HandleAppError(c, err)
-			return
-		}
-		existingProject.Elevation = *elevGd // Assign the GormDecimal struct
+		projectToUpdate.Location = *req.Location
 	}
 	if req.Status != nil {
-		existingProject.Status = *req.Status
+		projectToUpdate.Status = *req.Status // Pass status, service will check role
 	}
 
-	// Handle nullable StartDate and EndDate
+	// --- CORRECTED Date Handling Logic ---
+	// If req.StartDate is not nil AND not a zero value, then assign it.
+	// Otherwise (req.StartDate is nil OR req.StartDate is a zero value),
+	// we do not touch projectToUpdate.StartDate, meaning it retains its default zero value.
+	// The service will then interpret this as "no change".
 	if req.StartDate != nil {
-		existingProject.StartDate = req.StartDate
+		if !req.StartDate.IsZero() {
+			projectToUpdate.StartDate = req.StartDate
+		}
+		// The `else` (req.StartDate is not nil, but is zero) is intentionally empty here.
+		// This means projectToUpdate.StartDate remains its zero value (time.Time{}).
 	}
-	if req.EndDate != nil {
-		existingProject.EndDate = req.EndDate
-	}
-	// Note: StartDate, EndDate are not in UpdateProjectRequest DTO provided,
-	// so they are not updated here. Add them to DTO if needed.
 
-	appErr = h.projectService.UpdateProject(c.Request.Context(), existingProject)
+	if req.EndDate != nil {
+		if !req.EndDate.IsZero() {
+			projectToUpdate.EndDate = req.EndDate
+		}
+		// The `else` (req.EndDate is not nil, but is zero) is intentionally empty here.
+		// This means projectToUpdate.EndDate remains its zero value (time.Time{}).
+	}
+	// --- END CORRECTED Date Handling Logic ---
+
+	// FIX: Pass userRole to the service call
+	appErr = h.projectService.UpdateProject(c.Request.Context(), projectToUpdate, userRole)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
+		return
+	}
+
+	// After a successful update, it's good practice to fetch the updated project
+	// to return the most current state to the client.
+	updatedProject, appErr := h.projectService.GetProject(c.Request.Context(), projectID)
+	if appErr != nil {
+		// This should ideally not happen after a successful update, but handle defensively.
+		http_response.HandleAppError(c, exception.NewInternalError("Failed to retrieve updated project", appErr))
 		return
 	}
 
 	// Map updated model back to response DTO
 	resp := &dto.ProjectResponse{
-		ID:          existingProject.ID,
-		Name:        existingProject.Name,
-		Description: existingProject.Description,
-		Location:    existingProject.Location,
-		Latitude:    utils.GormDecimalToString(&existingProject.Latitude),
-		Longitude:   utils.GormDecimalToString(&existingProject.Longitude),
-		Elevation:   utils.GormDecimalToString(&existingProject.Elevation),
-		StartDate:   existingProject.StartDate,
-		EndDate:     existingProject.EndDate,
-		Status:      existingProject.Status,
-		CreatedBy:   existingProject.CreatedBy,
-		CreatedAt:   existingProject.CreatedAt,
-		UpdatedAt:   existingProject.UpdatedAt,
+		ID:          updatedProject.ID,
+		Name:        updatedProject.Name,
+		Description: updatedProject.Description,
+		Location:    updatedProject.Location,
+		StartDate:   updatedProject.StartDate,
+		EndDate:     updatedProject.EndDate,
+		Status:      updatedProject.Status,
+		CreatedBy:   updatedProject.CreatedBy,
+		CreatedAt:   updatedProject.CreatedAt,
+		UpdatedAt:   updatedProject.UpdatedAt,
 	}
 
 	http_response.RespondWithSuccess(c, http.StatusOK, resp)
@@ -266,9 +256,6 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 			Name:        p.Name,
 			Description: p.Description,
 			Location:    p.Location,
-			Latitude:    utils.GormDecimalToString(&p.Latitude),
-			Longitude:   utils.GormDecimalToString(&p.Longitude),
-			Elevation:   utils.GormDecimalToString(&p.Elevation),
 			StartDate:   p.StartDate,
 			EndDate:     p.EndDate,
 			Status:      p.Status,
@@ -292,16 +279,19 @@ func (h *ProjectHandler) GetProjectStations(c *gin.Context) {
 		return // Response already handled
 	}
 
-	// This part requires a StationService or direct repository access.
-	// For now, it's a placeholder. You would typically call:
+	// This part requires a StationService instance within the ProjectHandler.
+	// You would typically have:
+	// h.stationService contract.StationService in the handler struct,
+	// and initialize it in NewProjectHandler.
+	// Then call:
 	// stations, appErr := h.stationService.ListStationsByProject(c.Request.Context(), projectID)
 	// if appErr != nil {
-	//     http_response.HandleAppError(c, appErr)
-	//     return
+	// 	http_response.HandleAppError(c, appErr)
+	// 	return
 	// }
 	// http_response.RespondWithSuccess(c, http.StatusOK, stations)
 
-	// Mock response for now
-	_ = projectID                                                          // Use blank identifier to suppress "declared and not used" warning
+	// Mock response for now to allow compilation if StationService isn't passed in
+	_ = projectID
 	http_response.RespondWithSuccess(c, http.StatusOK, []models.Station{}) // Return empty slice
 }

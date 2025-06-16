@@ -22,13 +22,12 @@ func NewProjectService(projectRepo contract.ProjectRepository) contract.ProjectS
 }
 
 // CreateProject handles the business logic for creating a new project.
-// This method's signature MUST match the contract.ProjectService interface.
+// CreateProject handles the business logic for creating a new project.
 func (s *ProjectServiceImpl) CreateProject(
 	ctx context.Context,
 	project *models.Project,
 	createdBy utils.BinaryUUID,
-) (*models.Project, *exception.AppError) { // <-- ENSURE THIS RETURN SIGNATURE IS EXACTLY AS SHOWN
-	// Assign the creator and set timestamps if not already set by GORM hooks.
+) (*models.Project, *exception.AppError) {
 	project.ID = utils.NewBinaryUUID() // Generate a new UUID for the project
 	project.CreatedBy = createdBy
 	if project.CreatedAt.IsZero() {
@@ -38,10 +37,10 @@ func (s *ProjectServiceImpl) CreateProject(
 
 	appErr := s.projectRepo.Create(ctx, project)
 	if appErr != nil {
-		return nil, appErr // Return nil for project on error
+		return nil, appErr
 	}
 
-	return project, nil // Return the created project on success
+	return project, nil
 }
 
 // GetProject retrieves a project by its ID.
@@ -57,15 +56,30 @@ func (s *ProjectServiceImpl) GetProject(
 }
 
 // UpdateProject handles the business logic for updating an existing project.
+// It includes a role-based check for updating the 'Status' field.
 func (s *ProjectServiceImpl) UpdateProject(
 	ctx context.Context,
 	project *models.Project,
+	userRole models.UserRole, // Added userRole parameter
 ) *exception.AppError {
 	existingProject, appErr := s.projectRepo.GetByID(ctx, project.ID)
 	if appErr != nil {
 		return appErr
 	}
 
+	// --- Granular Authorization Check for Project Status ---
+	// If the request includes a status and it's different from the existing status,
+	// check if the user has the Engineer role.
+	if project.Status != "" && existingProject.Status != project.Status {
+		if userRole != models.RoleEngineer {
+			return exception.NewPermissionError("Only Engineers are authorized to update project status.")
+		}
+		existingProject.Status = project.Status // Allow status update for Engineers
+	}
+	// --- End Granular Authorization Check ---
+
+	// Update other fields if provided. These updates are allowed if the user
+	// passed the initial router-level authorization (RoleEngineer for any project update).
 	if project.Name != "" {
 		existingProject.Name = project.Name
 	}
@@ -75,25 +89,13 @@ func (s *ProjectServiceImpl) UpdateProject(
 	if project.Location != "" {
 		existingProject.Location = project.Location
 	}
-	// Use .Value != "" for google.golang.org/genproto/googleapis/type/decimal.Decimal
-	if project.Latitude.Internal.Value != "" {
-		existingProject.Latitude.Internal.Value = project.Latitude.Internal.Value
-	}
-	if project.Longitude.Internal.Value != "" {
-		existingProject.Longitude.Internal.Value = project.Longitude.Internal.Value
-	}
-	if project.Elevation.Internal.Value != "" {
-		existingProject.Elevation.Internal.Value = project.Elevation.Internal.Value
-	}
 	if !project.StartDate.IsZero() {
 		existingProject.StartDate = project.StartDate
 	}
 	if !project.EndDate.IsZero() {
 		existingProject.EndDate = project.EndDate
 	}
-	if project.Status != "" {
-		existingProject.Status = project.Status
-	}
+	// The 'Status' field is handled above based on role.
 
 	existingProject.UpdatedAt = time.Now()
 

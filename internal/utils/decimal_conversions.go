@@ -21,7 +21,7 @@ type GormDecimal struct {
 func (gd GormDecimal) Value() (driver.Value, error) {
 	// Access the Value field of the internal pbdecimal.Decimal
 	if gd.Internal.Value == "" {
-		return nil, nil
+		return nil, nil // Return nil for empty string to signify NULL in DB
 	}
 	// Return the string representation of the decimal value.
 	return gd.Internal.Value, nil

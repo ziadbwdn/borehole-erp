@@ -1,0 +1,61 @@
+services:
+  app:
+    # Build the Go application image from the Dockerfile in the current directory
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Map port 8080 from the container to port 8080 on your host machine
+    ports:
+      - "8080:8080"
+    # Environment variables for your Go application to connect to the database
+    environment:
+      DB_HOST: localhost # Service name 'db' is used for internal Docker network communication
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: iwakpeyek23
+      DB_NAME: borehole_ms
+      JWT_SECRET: '@iwakpeyeK23_$$eg00p3ceL' # !!! REPLACE WITH A STRONG SECRET !!!
+    # Ensure the app service starts only after the db service is healthy
+    depends_on:
+      db:
+        condition: service_healthy
+    # Connect to the custom network
+    networks:
+      - borehole_network
+
+  db:
+    # Use the official MySQL 8.0 image
+    image: mysql:8.0
+    # Map port 3306 from the container to port 3307 on your host (to avoid conflict with local MySQL if any)
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: iwakpeyek23 # Root password for MySQL
+      MYSQL_DATABASE: borehole_ms        # Database name for your application
+      # MYSQL_USER: root                   # User for your application
+      # MYSQL_PASSWORD: iwakpeyek23           # Password for your application user
+    # Persist database data to a named volume
+    volumes:
+      - db_data:/var/lib/mysql
+      # You can also add initialization scripts here, e.g., for migrations
+      # - ./initdb:/docker-entrypoint-initdb.d
+    # Health check to ensure the database is ready before the app starts
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user", "-puser"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    # Connect to the custom network
+    # command: --bind-address=0.0.0.0
+    # Connect to the custom network
+    networks:
+      - borehole_network
+
+# Define named volumes for data persistence
+volumes:
+  db_data:
+
+# Define custom network for services to communicate
+networks:
+  borehole_network:
+    driver: bridge

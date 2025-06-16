@@ -1,4 +1,4 @@
-package utils
+package utils // This line is CRUCIAL
 
 import (
 	"database/sql/driver"
@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// BinaryUUID is a custom type for UUIDs that are stored as BINARY(16) in the database.
 type BinaryUUID uuid.UUID
 
 // NewBinaryUUID generates a new random BinaryUUID.

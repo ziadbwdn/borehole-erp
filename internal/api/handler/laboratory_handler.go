@@ -4,8 +4,8 @@ import (
 	"boreholedata-ms/internal/api/dto"
 	"boreholedata-ms/internal/exception"
 	"boreholedata-ms/internal/interfaces/contract"
-	"boreholedata-ms/internal/models"
-	"boreholedata-ms/internal/utils" // For BinaryUUID, StringToGormDecimal, GormDecimalToString
+	"boreholedata-ms/internal/models" // Import models to access UserRole constants
+	"boreholedata-ms/internal/utils"  // For BinaryUUID, StringToGormDecimal, GormDecimalToString
 	"boreholedata-ms/pkg/gin_helpers"
 	"boreholedata-ms/pkg/http_response"
 	"net/http"
@@ -36,13 +36,13 @@ func (h *LaboratoryHandler) CreateLabSample(c *gin.Context) {
 		return
 	}
 
-	// Extract createdBy (userID) from context, set by authentication middleware
-	createdBy, appErr := gin_helpers.GetUserIDFromContext(c)
+	// --- Auth: Get User Role from Context ---
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
-	_ = createdBy // Use blank identifier to suppress "declared and not used" warning for now
+	// --- End Auth ---
 
 	// Convert string decimal values from DTO to utils.GormDecimal
 	depthFromGd, appErr := utils.StringToGormDecimal(req.DepthFrom)
@@ -80,7 +80,9 @@ func (h *LaboratoryHandler) CreateLabSample(c *gin.Context) {
 		TestDate:     testDate,
 	}
 
-	createdSample, appErr := h.labService.CreateSample(c.Request.Context(), sample)
+	// --- Auth: Pass userRole to service ---
+	createdSample, appErr := h.labService.CreateSample(c.Request.Context(), sample, userRole)
+	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
@@ -173,6 +175,14 @@ func (h *LaboratoryHandler) UpdateLabSample(c *gin.Context) {
 		return
 	}
 
+	// --- Auth: Get User Role from Context ---
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	// --- End Auth ---
+
 	// Create a models.LabSample to pass to the service, applying only provided fields
 	sampleToUpdate := &models.LabSample{
 		ID: sampleID,
@@ -207,14 +217,14 @@ func (h *LaboratoryHandler) UpdateLabSample(c *gin.Context) {
 	// Safely handle optional SamplingDate and TestDate.
 	// Check if the pointer itself is not nil before dereferencing.
 	if req.SamplingDate != nil {
-
 		if !req.SamplingDate.IsZero() {
 			sampleToUpdate.SamplingDate = *req.SamplingDate
 		} else {
-
+			// This else block is usually not needed as time.Time zero value is handled by IsZero()
+			// and if the pointer is nil, the outer if takes care of it.
+			// Keeping it commented for now, but often it indicates redundant logic.
 		}
 	}
-
 	if req.TestedBy != nil {
 		sampleToUpdate.TestedBy = *req.TestedBy
 	}
@@ -223,13 +233,14 @@ func (h *LaboratoryHandler) UpdateLabSample(c *gin.Context) {
 	}
 
 	if req.TestDate != nil {
-		// Same logic as SamplingDate
 		if !req.TestDate.IsZero() {
 			sampleToUpdate.TestDate = *req.TestDate
 		}
 	}
 
-	appErr = h.labService.UpdateSample(c.Request.Context(), sampleToUpdate)
+	// --- Auth: Pass userRole to service ---
+	appErr = h.labService.UpdateSample(c.Request.Context(), sampleToUpdate, userRole)
+	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
@@ -278,7 +289,17 @@ func (h *LaboratoryHandler) DeleteLabSample(c *gin.Context) {
 		return // Response already handled
 	}
 
-	appErr = h.labService.DeleteSample(c.Request.Context(), sampleID)
+	// --- Auth: Get User Role from Context ---
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	// --- End Auth ---
+
+	// --- Auth: Pass userRole to service ---
+	appErr = h.labService.DeleteSample(c.Request.Context(), sampleID, userRole)
+	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
@@ -348,6 +369,14 @@ func (h *LaboratoryHandler) CreateUCSResult(c *gin.Context) {
 		return
 	}
 
+	// --- Auth: Get User Role from Context ---
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	// --- End Auth ---
+
 	// Convert string decimal values from DTO to utils.GormDecimal
 	ucsValueGd, appErr := utils.StringToGormDecimal(req.UCSValue)
 	if appErr != nil {
@@ -379,7 +408,9 @@ func (h *LaboratoryHandler) CreateUCSResult(c *gin.Context) {
 		Notes:            req.Notes,
 	}
 
-	createdUCS, appErr := h.labService.CreateUCSResult(c.Request.Context(), ucs)
+	// --- Auth: Pass userRole to service ---
+	createdUCS, appErr := h.labService.CreateUCSResult(c.Request.Context(), ucs, userRole)
+	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
@@ -450,6 +481,14 @@ func (h *LaboratoryHandler) UpdateUCSResult(c *gin.Context) {
 		return
 	}
 
+	// --- Auth: Get User Role from Context ---
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	// --- End Auth ---
+
 	// Create a models.UCSResult to pass to the service, applying only provided fields
 	ucsToUpdate := &models.UCSResult{
 		ID: ucsID,
@@ -495,7 +534,9 @@ func (h *LaboratoryHandler) UpdateUCSResult(c *gin.Context) {
 		ucsToUpdate.Notes = *req.Notes
 	}
 
-	appErr = h.labService.UpdateUCSResult(c.Request.Context(), ucsToUpdate)
+	// --- Auth: Pass userRole to service ---
+	appErr = h.labService.UpdateUCSResult(c.Request.Context(), ucsToUpdate, userRole)
+	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
@@ -534,7 +575,17 @@ func (h *LaboratoryHandler) DeleteUCSResult(c *gin.Context) {
 		return // Response already handled
 	}
 
-	appErr = h.labService.DeleteUCSResult(c.Request.Context(), ucsID)
+	// --- Auth: Get User Role from Context ---
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	// --- End Auth ---
+
+	// --- Auth: Pass userRole to service ---
+	appErr = h.labService.DeleteUCSResult(c.Request.Context(), ucsID, userRole)
+	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return

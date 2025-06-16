@@ -14,10 +14,10 @@ type LabSample struct {
 	DepthFrom    utils.GormDecimal `gorm:"type:decimal(8,2);not null" json:"depthFrom"` // Changed to utils.GormDecimal
 	DepthTo      utils.GormDecimal `gorm:"type:decimal(8,2);not null" json:"depthTo"`   // Changed to utils.GormDecimal
 	SampleType   string            `gorm:"size:50" json:"sampleType"`
-	SamplingDate time.Time       `gorm:"type:datetime" json:"samplingDate"` // Changed to pointer and removed not null
+	SamplingDate time.Time         `gorm:"type:datetime" json:"samplingDate"` // Changed to pointer and removed not null
 	TestedBy     string            `gorm:"size:100" json:"testedBy"`
 	LabName      string            `gorm:"size:100" json:"labName"`
-	TestDate     time.Time       `gorm:"type:datetime" json:"testDate"`     // Changed to pointer and removed not null
+	TestDate     time.Time         `gorm:"type:datetime" json:"testDate"`   // Changed to pointer and removed not null
 	CreatedAt    time.Time         `gorm:"autoCreateTime" json:"createdAt"` // Corrected: Use autoCreateTime
 	UpdatedAt    time.Time         `gorm:"autoUpdateTime" json:"updatedAt"` // Corrected: Use autoUpdateTime
 
