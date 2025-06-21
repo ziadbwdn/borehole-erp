@@ -1,4 +1,4 @@
-![GGD Logo](https://github.com/ziadbwdn/borehole_erp/docs/logo/GGD_logo.jpg?raw=true)
+![GGD_Logo](https://github.com/ziadbwdn/borehole_erp/docs/logo/GGD_logo.jpg?raw=true)
 
 # Borehole Data ERP
 
