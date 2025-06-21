@@ -3,6 +3,7 @@ package services
 import (
 	"boreholedata-ms/internal/exception"
 	"boreholedata-ms/internal/interfaces/contract"
+	"boreholedata-ms/internal/logger"
 	"boreholedata-ms/internal/models"
 	"boreholedata-ms/internal/utils"
 	"boreholedata-ms/pkg/pdf"
@@ -11,86 +12,78 @@ import (
 )
 
 type ReportServiceImpl struct {
-	stationRepo contract.StationRepository
-	lithoRepo   contract.LithologyRepository
-	labRepo     contract.LaboratoryRepository
-	pdfGenerator *pdf.PDFGenerator
+	stationRepo     contract.StationRepository
+	lithoRepo       contract.LithologyRepository
+	labRepo         contract.LaboratoryRepository
+	pdfGenerator    *pdf.PDFGenerator
+	activityService contract.UserActivityService
+	logger          logger.Logger
 }
 
-func NewReportService(
-	stationRepo contract.StationRepository,
-	lithoRepo contract.LithologyRepository,
-	labRepo contract.LaboratoryRepository,
-) *ReportServiceImpl {
+func NewReportService(stationRepo contract.StationRepository, lithoRepo contract.LithologyRepository, labRepo contract.LaboratoryRepository, activityService contract.UserActivityService, logger logger.Logger) contract.ReportService {
+	if stationRepo == nil { panic("stationRepo must not be nil") }
+	if lithoRepo == nil { panic("lithoRepo must not be nil") }
+	if labRepo == nil { panic("labRepo must not be nil") }
+	if activityService == nil { panic("activityService must not be nil") }
+	if logger == nil { panic("logger must not be nil") }
 	return &ReportServiceImpl{
-		stationRepo: stationRepo,
-		lithoRepo:   lithoRepo,
-		labRepo:     labRepo,
-		pdfGenerator: pdf.NewPDFGenerator(),
+		stationRepo:     stationRepo,
+		lithoRepo:       lithoRepo,
+		labRepo:         labRepo,
+		pdfGenerator:    pdf.NewPDFGenerator(),
+		activityService: activityService,
+		logger:          logger,
 	}
 }
 
-func (s *ReportServiceImpl) GenerateStationReport(
-	ctx context.Context,
-	stationID utils.BinaryUUID,
-) ([]byte, *exception.AppError) {
-	// Get station (without project relation for now)
-	station, appErr := s.stationRepo.GetByID(ctx, stationID) // Assuming GetByID returns *exception.AppError
-	if appErr != nil {
-		// Propagate the error directly from the repository
-		return nil, appErr
+func (s *ReportServiceImpl) GenerateStationReport(ctx context.Context, stationID utils.BinaryUUID, logCtx models.ActivityLogContext) ([]byte, *exception.AppError) {
+	station, appErr := s.stationRepo.GetByID(ctx, stationID)
+	if appErr != nil { return nil, appErr }
+	
+	logs, appErr := s.lithoRepo.ListLogsByStation(ctx, stationID)
+	if appErr != nil && appErr.Code != exception.ErrNotFound {
+		return nil, exception.NewDatabaseError("lithology logs retrieval failed", appErr)
 	}
-
-	// Get lithology logs
-	logs, appErr := s.lithoRepo.ListLogsByStation(ctx, stationID) // Assuming ListLogsByStation returns *exception.AppError
-	if appErr != nil {
-		if appErr.Code == exception.ErrNotFound {
-			logs = []*models.LithologyLog{} // Treat as empty if not found
-		} else {
-			return nil, exception.NewDatabaseError("lithology logs retrieval failed", appErr)
-		}
+	
+	samples, appErr := s.labRepo.ListSamplesByStation(ctx, stationID)
+	if appErr != nil && appErr.Code != exception.ErrNotFound {
+		return nil, exception.NewDatabaseError("laboratory samples retrieval failed", appErr)
 	}
-
-	// Get lab samples
-	samples, appErr := s.labRepo.ListSamplesByStation(ctx, stationID) // Assuming ListSamplesByStation returns *exception.AppError
-	if appErr != nil {
-		if appErr.Code == exception.ErrNotFound {
-			samples = []*models.LabSample{} // Treat as empty if not found
-		} else {
-			return nil, exception.NewDatabaseError("laboratory samples retrieval failed", appErr)
-		}
-	}
-
-	// Get UCS results
+	
 	var ucsResults []*models.UCSResult
 	for _, sample := range samples {
-		results, appErrUCS := s.labRepo.GetUCSResultsBySample(ctx, sample.ID) // Assuming GetUCSResultsBySample returns *exception.AppError
-		if appErrUCS != nil {
-			if appErrUCS.Code == exception.ErrNotFound {
-				continue // If no UCS results found for this sample, continue to the next.
-			}
-			// It's a genuine AppError (not NotFound). Log it and continue.
-			fmt.Printf("Warning: Failed to get UCS results for sample %s: %v\n", sample.ID.String(), appErrUCS)
+		results, appErrUCS := s.labRepo.GetUCSResultsBySample(ctx, sample.ID)
+		if appErrUCS != nil && appErrUCS.Code != exception.ErrNotFound {
+			s.logger.Warn(ctx, "Failed to get UCS results for sample during report generation", logger.Field{Key: "error", Value: appErrUCS.Error()})
 			continue
 		}
-		ucsResults = append(ucsResults, results...)
+		if results != nil { ucsResults = append(ucsResults, results...) }
+	}
+	
+	pdfBuffer, genErr := s.pdfGenerator.GenerateBoreholeLogPDF(station, logs, samples, ucsResults)
+	if genErr != nil {
+		return nil, exception.NewInternalError("PDF generation failed", genErr)
 	}
 
-	// Generate PDF report
-	generator := pdf.NewPDFGenerator()
-	// Corrected: Assign to a generic 'error' variable first
-	pdfBuffer, genErr := generator.GenerateBoreholeLogPDF(station, logs, samples, ucsResults)
-	if genErr != nil {
-		// Corrected: Pass the underlying error (genErr) as the second argument
-		return nil, exception.NewInternalError("PDF generation failed", genErr)
+	stationIDStr := station.ID.String()
+	details := fmt.Sprintf("Generated station report for '%s'.", station.StationCode)
+	ipAddr := logCtx.IPAddress
+	logErr := s.activityService.LogUserActivity(ctx, logCtx.UserID, logCtx.Username, models.ActionTypeGenerateReport, models.ResourceTypeReport, &stationIDStr, &ipAddr, &details, nil, nil)
+	if logErr != nil {
+		s.logger.Error(ctx, "Failed to log GenerateStationReport activity", logErr, logger.Field{Key: "stationID", Value: station.ID.String()})
 	}
 
 	return pdfBuffer.Bytes(), nil
 }
 
-// GenerateProjectSummary will generate a summary report for a given project.
-// This is a placeholder for future implementation.
-func (s *ReportServiceImpl) GenerateProjectSummary(ctx context.Context, projectID utils.BinaryUUID) ([]byte, *exception.AppError) {
-	// Corrected: Use exception.NewInternalError with the correct signature
-	return nil, exception.NewInternalError("GenerateProjectSummary not yet implemented", nil) // Pass nil for the error if no underlying error
+func (s *ReportServiceImpl) GenerateProjectSummary(ctx context.Context, projectID utils.BinaryUUID, logCtx models.ActivityLogContext) ([]byte, *exception.AppError) {
+	projectIDStr := projectID.String()
+	details := fmt.Sprintf("Generated project summary report for Project ID %s.", projectID.String())
+	ipAddr := logCtx.IPAddress
+	logErr := s.activityService.LogUserActivity(ctx, logCtx.UserID, logCtx.Username, models.ActionTypeGenerateReport, models.ResourceTypeReport, &projectIDStr, &ipAddr, &details, nil, nil)
+	if logErr != nil {
+		s.logger.Error(ctx, "Failed to log GenerateProjectSummary activity", logErr, logger.Field{Key: "projectID", Value: projectID.String()})
+	}
+
+	return nil, exception.NewInternalError("GenerateProjectSummary not yet implemented", nil)
 }

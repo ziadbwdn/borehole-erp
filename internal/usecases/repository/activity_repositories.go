@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 	"time"
-
+	"fmt"
 	"boreholedata-ms/internal/api/dto"
 	"boreholedata-ms/internal/exception"
 	"boreholedata-ms/internal/logger"
@@ -37,19 +37,43 @@ func NewGormUserActivityRepository(db *gorm.DB, logger logger.Logger) *GormUserA
 
 // Create saves a new user activity record to the database.
 func (r *GormUserActivityRepository) Create(ctx context.Context, activity *models.UserActivity) error {
-	// GORM will automatically handle UUID generation if activity.ID is a zero value
-	// and your model's ID field is configured with `gorm:"type:uuid;default:uuid_generate_v4()"`
-	// or similar for MySQL UUID types. If using BinaryUUID, ensure GORM handles conversion.
-	if err := r.db.WithContext(ctx).Create(activity).Error; err != nil {
-		r.logger.Error(ctx, "Failed to create user activity in DB", err,
+	r.logger.Info(ctx, "GORMRepo: Attempting to save user activity",
+		logger.Field{Key: "proposedActivityID", Value: activity.ID.String()}, // Log the ID before creation
+		logger.Field{Key: "userID", Value: activity.UserID.String()},
+		logger.Field{Key: "actionType", Value: activity.ActionType},
+		logger.Field{Key: "username", Value: activity.Username},
+		logger.Field{Key: "resourceID", Value: activity.ResourceID}, // Show *string value
+		logger.Field{Key: "ipAddress", Value: activity.IPAddress},   // Show *string value
+	)
+
+	result := r.db.WithContext(ctx).Create(activity) // Store the result
+
+	if result.Error != nil {
+		r.logger.Error(ctx, "GORMRepo: Failed to create user activity in DB", result.Error,
 			logger.Field{Key: "userID", Value: activity.UserID.String()},
-			logger.Field{Key: "actionType", Value: activity.ActionType})
-		return exception.NewDatabaseError("CreateUserActivity", err)
+			logger.Field{Key: "actionType", Value: activity.ActionType},
+			logger.Field{Key: "rowsAffected", Value: result.RowsAffected}, // Log RowsAffected even on error
+		)
+		return exception.NewDatabaseError("CreateUserActivity", result.Error)
 	}
-	r.logger.Info(ctx, "User activity created in DB",
+
+	if result.RowsAffected == 0 {
+		// This is a very suspicious case for a Create operation
+		r.logger.Warn(ctx, "GORMRepo: Create user activity reported 0 rows affected with no error",
+			logger.Field{Key: "activityID", Value: activity.ID.String()},
+			logger.Field{Key: "userID", Value: activity.UserID.String()},
+			logger.Field{Key: "actionType", Value: activity.ActionType},
+		)
+		// Consider this an error as well, or at least investigate why it happened
+		return exception.NewDatabaseError("CreateUserActivity", fmt.Errorf("0 rows affected on create"))
+	}
+
+	r.logger.Info(ctx, "GORMRepo: User activity created in DB successfully",
 		logger.Field{Key: "activityID", Value: activity.ID.String()},
 		logger.Field{Key: "userID", Value: activity.UserID.String()},
-		logger.Field{Key: "actionType", Value: activity.ActionType})
+		logger.Field{Key: "actionType", Value: activity.ActionType},
+		logger.Field{Key: "rowsAffected", Value: result.RowsAffected},
+	)
 	return nil
 }
 
@@ -263,6 +287,7 @@ func (r *GormUserActivityRepository) GetUserActivitySummary(ctx context.Context,
 		UpdateOperations:     0,
 		DeleteOperations:     0,
 		ReportGenerations:    0,
+		ExportGenerations:	  0,
 		LastActivity:         time.Time{}, // Zero value
 		MostAccessedResource: "",
 	}
@@ -288,8 +313,10 @@ func (r *GormUserActivityRepository) GetUserActivitySummary(ctx context.Context,
 		case models.ActionTypeDeleteProject, models.ActionTypeDeleteStation, models.ActionTypeDeleteLithology,
 			models.ActionTypeDeleteSample, models.ActionTypeDeleteLabTest, models.ActionTypeDeleteUCSResult:
 			summary.DeleteOperations++
-		case models.ActionTypeGenerateReport, models.ActionTypeExportData:
+		case models.ActionTypeGenerateReport:
 			summary.ReportGenerations++
+		case models.ActionTypeExportData:
+			summary.ExportGenerations++
 		}
 
 		if activity.ResourceType != "" {

@@ -17,7 +17,6 @@ type LogActivityRequest struct {
 }
 
 // UserActivityResponse represents the response structure for a single user activity entry.
-// It mirrors essential fields from the UserActivity model for API consumption.
 type UserActivityResponse struct {
 	ID           string    `json:"id"`                   // UUID as string
 	UserID       string    `json:"userId"`               // User's UUID as string
@@ -50,6 +49,7 @@ type UserActivitySummaryResponse struct {
 	UpdateOperations     int64     `json:"updateOperations"`     // Count of 'update' actions
 	DeleteOperations     int64     `json:"deleteOperations"`     // Count of 'delete' actions
 	ReportGenerations    int64     `json:"reportGenerations"`    // Count of report generation actions
+	ExportGenerations    int64     `json:"exportGenerations"`    // Count of report generation actions
 	LastActivity         time.Time `json:"lastActivity"`         // Timestamp of the last activity
 	MostAccessedResource string    `json:"mostAccessedResource"` // The resource type most frequently accessed
 	// You can add more aggregated fields here as needed, e.g.:

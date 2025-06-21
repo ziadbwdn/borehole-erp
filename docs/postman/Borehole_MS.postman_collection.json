@@ -7,7 +7,7 @@
 	},
 	"item": [
 		{
-			"name": "USER REGISTRATION",
+			"name": "USER REGISTRATION - ENG",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -15,7 +15,7 @@
 			"response": []
 		},
 		{
-			"name": "USER LOGIN",
+			"name": "USER REGISTRATION - ADMIN",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -23,7 +23,7 @@
 			"response": []
 		},
 		{
-			"name": "GET PROFILE",
+			"name": "USER REGISTRATION - GEOS",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -31,7 +31,87 @@
 			"response": []
 		},
 		{
-			"name": "CREATE PROJECT",
+			"name": "USER REGISTRATION - LABTECH",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "USER LOGIN - GEOS",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "USER LOGIN - LABTECH",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "USER LOGIN - ENG FAILED",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "USER LOGIN - ENG OK",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "USER LOGIN - ADMIN OK",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "USER LOGIN - NO USER FOUND",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "GET PROFILE - GEOS",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "GET PROFILE - LABTECH",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "CREATE PROJECT - DENIED",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "CREATE PROJECT - OK",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -55,7 +135,7 @@
 			"response": []
 		},
 		{
-			"name": "CREATE STATIONS",
+			"name": "CREATE STATIONS - 01 - GEO",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -63,7 +143,7 @@
 			"response": []
 		},
 		{
-			"name": "GET STATIONS",
+			"name": "CREATE STATIONS - 02 - ENG",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -71,7 +151,23 @@
 			"response": []
 		},
 		{
-			"name": "UPDATE STATIONS",
+			"name": "GET STATIONS - 02 - ENG",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE STATIONS - 02 - ENG",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE STATIONS - 02 - GEO",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -111,14 +207,6 @@
 			"response": []
 		},
 		{
-			"name": "UPDATE LITHOLOGY LOGS - on 03",
-			"request": {
-				"method": "GET",
-				"header": []
-			},
-			"response": []
-		},
-		{
 			"name": "GET LITHOLOGY LOGS - 02",
 			"request": {
 				"method": "GET",
@@ -135,6 +223,22 @@
 			"response": []
 		},
 		{
+			"name": "UPDATE LITHOLOGY LOGS - ON 03",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE LITHOLOGY LOGS - DENIED",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
 			"name": "GET LIST OF LITHOLOGY LOGS",
 			"request": {
 				"method": "GET",
@@ -143,7 +247,15 @@
 			"response": []
 		},
 		{
-			"name": "CREATE LABORATORY SAMPLES",
+			"name": "CREATE LABORATORY SAMPLES 01",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "CREATE LABORATORY SAMPLES 02",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -159,7 +271,7 @@
 			"response": []
 		},
 		{
-			"name": "UPDATE LABORATORY SAMPLES - X",
+			"name": "UPDATE LABORATORY SAMPLES 02",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -167,7 +279,7 @@
 			"response": []
 		},
 		{
-			"name": "CREATE LAB SAMPLES - 02",
+			"name": "CREATE UCS TEST RESULT - 01",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -175,7 +287,7 @@
 			"response": []
 		},
 		{
-			"name": "GET LAB SAMPLES - 02",
+			"name": "CREATE UCS TEST RESULT - 02",
 			"request": {
 				"method": "GET",
 				"header": []
@@ -183,7 +295,47 @@
 			"response": []
 		},
 		{
-			"name": "UPDATE LAB SAMPLES - 02",
+			"name": "GET UCS SAMPLES - 02",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE UCS SAMPLES - 02",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE UCS SAMPLES - 02 - DENIED",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "GET ACTIVITIES",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "REPORT - STATION 02",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "ACTIVITIES",
 			"request": {
 				"method": "GET",
 				"header": []

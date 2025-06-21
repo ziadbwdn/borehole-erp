@@ -16,12 +16,14 @@ import (
 // StationHandler handles HTTP requests related to station management.
 type StationHandler struct {
 	stationService contract.StationService
+	authService    contract.AuthService
 }
 
 // NewStationHandler creates and returns a new instance of StationHandler.
-func NewStationHandler(stationService contract.StationService) *StationHandler {
+func NewStationHandler(stationService contract.StationService, authService contract.AuthService) *StationHandler {
 	return &StationHandler{
 		stationService: stationService,
+		authService:    authService,
 	}
 }
 
@@ -30,49 +32,57 @@ func NewStationHandler(stationService contract.StationService) *StationHandler {
 func (h *StationHandler) CreateStation(c *gin.Context) {
 	var req dto.CreateStationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr)
-		return
+		http_response.HandleAppError(c, exception.NewValidationError("Invalid request body", err.Error())); return
 	}
 
-	createdBy, appErr := gin_helpers.GetUserIDFromContext(c)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
 	}
 
-	// Convert string decimal values from DTO to utils.GormDecimal
-	latitudeGd, appErr := utils.StringToGormDecimal(req.Latitude)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
 	}
 
-	longitudeGd, appErr := utils.StringToGormDecimal(req.Longitude)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	logCtx := models.ActivityLogContext{ 
+		UserID: userID.String(), 
+		Username: username, 
+		IPAddress: c.ClientIP()}
+
+	// CORRECTED: All these variables are now used in the `station` model creation.
+	latitudeGd, appErr := utils.StringToGormDecimal(req.Latitude); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
 	}
 
-	elevationGd, appErr := utils.StringToGormDecimal(req.Elevation)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	longitudeGd, appErr := utils.StringToGormDecimal(req.Longitude); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
 	}
 
-	GWLGd, appErr := utils.StringToGormDecimal(req.GWL)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	elevationGd, appErr := utils.StringToGormDecimal(req.Elevation); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
 	}
 
-	totalDepthGd, appErr := utils.StringToGormDecimal(req.TotalDepth)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	GWLGd, appErr := utils.StringToGormDecimal(req.GWL); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
 	}
 
-	// Map DTO to model
+	totalDepthGd, appErr := utils.StringToGormDecimal(req.TotalDepth); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
 	station := &models.Station{
 		ProjectID:     req.ProjectID,
 		StationCode:   req.StationCode,
@@ -84,42 +94,18 @@ func (h *StationHandler) CreateStation(c *gin.Context) {
 		Elevation:     *elevationGd,
 		TotalDepth:    *totalDepthGd,
 		DrillingDate:  req.DrillingDate,
+		DrillingStatus: models.DrillingStatus(req.DrillingStatus),
 		GeologistName: req.GeologistName,
 		Notes:         req.Notes,
 	}
 
-	// Map DrillingStatus from DTO to model
-	if req.DrillingStatus != "" {
-		station.DrillingStatus = models.DrillingStatus(req.DrillingStatus)
-	}
-	// If not provided in DTO, GORM's default value ('planned') will be used when inserting.
-
-	createdStation, appErr := h.stationService.CreateStation(c.Request.Context(), station, createdBy)
+	createdStation, appErr := h.stationService.CreateStation(c.Request.Context(), station, userID, logCtx)
 	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+		http_response.HandleAppError(c, appErr); return
 	}
 
-	// Map created model back to response DTO
-	resp := &dto.StationResponse{
-		ID:             createdStation.ID,
-		ProjectID:      createdStation.ProjectID,
-		StationCode:    createdStation.StationCode,
-		StationName:    createdStation.StationName,
-		StationType:    createdStation.StationType,
-		Latitude:       utils.GormDecimalToString(&createdStation.Latitude),
-		Longitude:      utils.GormDecimalToString(&createdStation.Longitude),
-		Elevation:      utils.GormDecimalToString(&createdStation.Elevation),
-		GWL:            utils.GormDecimalToString(&createdStation.GWL),
-		TotalDepth:     utils.GormDecimalToString(&createdStation.TotalDepth),
-		DrillingDate:   createdStation.DrillingDate,
-		DrillingStatus: string(createdStation.DrillingStatus), // --- FIX: Direct conversion or use as string ---
-		GeologistName:  createdStation.GeologistName,
-		Notes:          createdStation.Notes,
-		CreatedAt:      createdStation.CreatedAt,
-		UpdatedAt:      createdStation.UpdatedAt,
-	}
-
+	// CORRECTED: The `createdStation` variable is now used.
+	resp := dto.MapStationToResponse(createdStation)
 	http_response.RespondWithSuccess(c, http.StatusCreated, resp)
 }
 
@@ -162,28 +148,42 @@ func (h *StationHandler) GetStation(c *gin.Context) {
 // UpdateStation handles updating an existing station.
 // @Router /api/stations/{id} [put]
 func (h *StationHandler) UpdateStation(c *gin.Context) {
-	// Step 1: Get Station ID and request body.
 	stationID, appErr := gin_helpers.ParseIDFromContext(c, "id", "station")
 	if appErr != nil {
 		return
 	}
-
 	var req dto.UpdateStationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr)
+		http_response.HandleAppError(c, exception.NewValidationError("Invalid request body", err.Error()))
 		return
 	}
 
-	// Step 2: Call the service with the ID and the DTO. No mapping, no model creation.
-	updatedStation, appErr := h.stationService.UpdateStation(c.Request.Context(), stationID, &req)
+	// 1. Get UserID and Username for logging
+	userID, appErr := gin_helpers.GetUserIDFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	// Step 3: Map the final model to a clean response DTO.
-	// This also fixes the ugly JSON output you were seeing for decimal fields.
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
+	}
+
+	// 3. Call the service with stationID, the DTO, and the new logCtx parameter
+	updatedStation, appErr := h.stationService.UpdateStation(c.Request.Context(), stationID, &req, logCtx)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	
 	resp := dto.MapStationToResponse(updatedStation)
 	http_response.RespondWithSuccess(c, http.StatusOK, resp)
 }
@@ -193,16 +193,36 @@ func (h *StationHandler) UpdateStation(c *gin.Context) {
 func (h *StationHandler) DeleteStation(c *gin.Context) {
 	stationID, appErr := gin_helpers.ParseIDFromContext(c, "id", "station")
 	if appErr != nil {
-		return // Response already handled
+		return
+	}
+	
+	// 1. Get UserID and Username for logging
+	userID, appErr := gin_helpers.GetUserIDFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
 	}
 
-	appErr = h.stationService.DeleteStation(c.Request.Context(), stationID)
+	// 3. Call the service with logCtx
+	appErr = h.stationService.DeleteStation(c.Request.Context(), stationID, logCtx)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	http_response.RespondWithSuccess(c, http.StatusNoContent, nil) // 204 No Content for successful deletion
+	http_response.RespondWithSuccess(c, http.StatusNoContent, nil)
 }
 
 // ListStationsByProject handles listing stations for a specific project.
@@ -251,4 +271,63 @@ func (h *StationHandler) ListStationsByProject(c *gin.Context) {
 		Stations: stationResponses,
 		Total:    len(stationResponses),
 	})
+}
+
+
+// ExportStationPointsGeo handles the request for a simple geographic coordinate export.
+func (h *StationHandler) ExportStationPointsGeo(c *gin.Context) {
+	projectID, err := utils.ParseBinaryUUID(c.Param("id"))
+	if err != nil {
+		appErr := exception.NewValidationError("Invalid project ID format", err.Error())
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+
+	// 1. Get UserID and Username for logging
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); if appErr != nil { http_response.HandleAppError(c, appErr); return }
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); if appErr != nil { http_response.HandleAppError(c, appErr); return }
+
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
+	}
+
+	geoPoints, appErr := h.stationService.ExportStationPointsGeo(c.Request.Context(), projectID, logCtx)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+
+	http_response.RespondWithSuccess(c, http.StatusOK, geoPoints)
+}
+
+// ExportStationPointsUTM handles the request for a combined geographic and UTM coordinate export.
+func (h *StationHandler) ExportStationPointsUTM(c *gin.Context) {
+	projectID, err := utils.ParseBinaryUUID(c.Param("id"))
+	if err != nil {
+		appErr := exception.NewValidationError("Invalid project ID format", err.Error())
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+
+	// 1. Get UserID and Username for logging
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); if appErr != nil { http_response.HandleAppError(c, appErr); return }
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); if appErr != nil { http_response.HandleAppError(c, appErr); return }
+
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
+	}
+	
+	utmPoints, appErr := h.stationService.ExportStationPointsUTM(c.Request.Context(), projectID, logCtx)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+
+	http_response.RespondWithSuccess(c, http.StatusOK, utmPoints)
 }

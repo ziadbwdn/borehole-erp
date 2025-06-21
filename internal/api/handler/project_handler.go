@@ -17,15 +17,14 @@ import (
 // ProjectHandler handles HTTP requests related to project management.
 type ProjectHandler struct {
 	projectService contract.ProjectService
-	// If GetProjectStations needs StationService, it should be here too
-	// stationService contract.StationService
+	authService    contract.AuthService
 }
 
 // NewProjectHandler creates and returns a new instance of ProjectHandler.
-func NewProjectHandler(projectService contract.ProjectService) *ProjectHandler {
+func NewProjectHandler(projectService contract.ProjectService, authService contract.AuthService) *ProjectHandler {
 	return &ProjectHandler{
 		projectService: projectService,
-		// stationService: stationService, // Uncomment if needed
+		authService:    authService,
 	}
 }
 
@@ -34,45 +33,51 @@ func NewProjectHandler(projectService contract.ProjectService) *ProjectHandler {
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	var req dto.CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr)
+		http_response.HandleAppError(c, exception.NewValidationError("Invalid request body", err.Error()))
 		return
 	}
 
-	createdBy, appErr := gin_helpers.GetUserIDFromContext(c)
+	// 1. Get UserID from context
+	userID, appErr := gin_helpers.GetUserIDFromContext(c)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	// --- FIX: Correctly map time.Time from DTO to *time.Time in Model ---
-	var projectStartDate *time.Time
-	if !req.StartDate.IsZero() {
-		projectStartDate = &req.StartDate
+	// 2. Get Username by calling AuthService
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
 	}
 
-	var projectEndDate *time.Time
-	if !req.EndDate.IsZero() {
-		projectEndDate = &req.EndDate
+	// 3. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
 	}
-	// --- END FIX ---
-
-	// Map DTO to model
+	
+	// Map DTO to model (existing logic)
+	var projectStartDate, projectEndDate *time.Time
+	if !req.StartDate.IsZero() { projectStartDate = &req.StartDate }
+	if !req.EndDate.IsZero() { projectEndDate = &req.EndDate }
 	project := &models.Project{
 		Name:        req.Name,
 		Description: req.Description,
 		Location:    req.Location,
-		StartDate:   projectStartDate, // Assign the correctly mapped *time.Time
-		EndDate:     projectEndDate,   // Assign the correctly mapped *time.Time
+		StartDate:   projectStartDate,
+		EndDate:     projectEndDate,
 	}
 
-	createdProject, appErr := h.projectService.CreateProject(c.Request.Context(), project, createdBy)
+	// 4. Call the service with the new logCtx parameter
+	createdProject, appErr := h.projectService.CreateProject(c.Request.Context(), project, userID, logCtx)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	// Map created model back to response DTO
+	// Map created model back to response DTO (existing logic)
 	resp := &dto.ProjectResponse{
 		ID:          createdProject.ID,
 		Name:        createdProject.Name,
@@ -85,7 +90,6 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		CreatedAt:   createdProject.CreatedAt,
 		UpdatedAt:   createdProject.UpdatedAt,
 	}
-
 	http_response.RespondWithSuccess(c, http.StatusCreated, resp)
 }
 
@@ -122,83 +126,72 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 // UpdateProject handles updating an existing project.
 // @Router /api/projects/{id} [put]
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
-	projectID, appErr := gin_helpers.ParseIDFromContext(c, "id", "project")
-	if appErr != nil {
-		return // Response already handled
-	}
-
+	projectID, appErr := gin_helpers.ParseIDFromContext(c, "id", "project"); if appErr != nil { return }
 	var req dto.UpdateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr)
-		return
+		http_response.HandleAppError(c, exception.NewValidationError("Invalid request body", err.Error())); return
 	}
 
-	// Get user role from context
-	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); 
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+	
+	logCtx := models.ActivityLogContext{ 
+		UserID: userID.String(), 
+		Username: username, 
+		IPAddress: c.ClientIP()}
+
+	projectToUpdate := &models.Project{ ID: projectID }
+	if req.Name != nil { 
+		projectToUpdate.Name = *req.Name 
+	}
+
+	if req.Description != nil { 
+		projectToUpdate.Description = *req.Description 
+	}
+
+	if req.Location != nil { 
+		projectToUpdate.Location = *req.Location 
+	}
+
+	if req.Status != nil { 
+		projectToUpdate.Status = *req.Status 
+	}
+
+	if req.StartDate != nil && !req.StartDate.IsZero() { 
+		projectToUpdate.StartDate = req.StartDate 
+	}
+
+	if req.EndDate != nil && !req.EndDate.IsZero() { 
+		projectToUpdate.EndDate = req.EndDate 
+	}
+
+	appErr = h.projectService.UpdateProject(c.Request.Context(), projectToUpdate, userRole, logCtx)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	// Create a new Project model to hold only the fields intended for update.
-	// The service layer will fetch the full existing project and apply these changes.
-	projectToUpdate := &models.Project{
-		ID: projectID, // Crucial: Set the ID of the project to be updated
-	}
-
-	if req.Name != nil {
-		projectToUpdate.Name = *req.Name
-	}
-	if req.Description != nil {
-		projectToUpdate.Description = *req.Description
-	}
-	if req.Location != nil {
-		projectToUpdate.Location = *req.Location
-	}
-	if req.Status != nil {
-		projectToUpdate.Status = *req.Status // Pass status, service will check role
-	}
-
-	// --- CORRECTED Date Handling Logic ---
-	// If req.StartDate is not nil AND not a zero value, then assign it.
-	// Otherwise (req.StartDate is nil OR req.StartDate is a zero value),
-	// we do not touch projectToUpdate.StartDate, meaning it retains its default zero value.
-	// The service will then interpret this as "no change".
-	if req.StartDate != nil {
-		if !req.StartDate.IsZero() {
-			projectToUpdate.StartDate = req.StartDate
-		}
-		// The `else` (req.StartDate is not nil, but is zero) is intentionally empty here.
-		// This means projectToUpdate.StartDate remains its zero value (time.Time{}).
-	}
-
-	if req.EndDate != nil {
-		if !req.EndDate.IsZero() {
-			projectToUpdate.EndDate = req.EndDate
-		}
-		// The `else` (req.EndDate is not nil, but is zero) is intentionally empty here.
-		// This means projectToUpdate.EndDate remains its zero value (time.Time{}).
-	}
-	// --- END CORRECTED Date Handling Logic ---
-
-	// FIX: Pass userRole to the service call
-	appErr = h.projectService.UpdateProject(c.Request.Context(), projectToUpdate, userRole)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
-	}
-
-	// After a successful update, it's good practice to fetch the updated project
-	// to return the most current state to the client.
 	updatedProject, appErr := h.projectService.GetProject(c.Request.Context(), projectID)
 	if appErr != nil {
-		// This should ideally not happen after a successful update, but handle defensively.
-		http_response.HandleAppError(c, exception.NewInternalError("Failed to retrieve updated project", appErr))
-		return
+		http_response.HandleAppError(c, exception.NewInternalError("Failed to retrieve updated project", appErr)); return
 	}
 
-	// Map updated model back to response DTO
+	// map DTO Response
 	resp := &dto.ProjectResponse{
 		ID:          updatedProject.ID,
 		Name:        updatedProject.Name,
@@ -211,7 +204,6 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 		CreatedAt:   updatedProject.CreatedAt,
 		UpdatedAt:   updatedProject.UpdatedAt,
 	}
-
 	http_response.RespondWithSuccess(c, http.StatusOK, resp)
 }
 
@@ -220,16 +212,36 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	projectID, appErr := gin_helpers.ParseIDFromContext(c, "id", "project")
 	if appErr != nil {
-		return // Response already handled
+		return
 	}
 
-	appErr = h.projectService.DeleteProject(c.Request.Context(), projectID)
+	// 1. Get UserID and Username for logging
+	userID, appErr := gin_helpers.GetUserIDFromContext(c)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	http_response.RespondWithSuccess(c, http.StatusNoContent, nil) // 204 No Content for successful deletion
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
+	}
+
+	// 3. Call the service with logCtx
+	appErr = h.projectService.DeleteProject(c.Request.Context(), projectID, logCtx)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+
+	http_response.RespondWithSuccess(c, http.StatusNoContent, nil)
 }
 
 // ListProjects handles listing all projects for the authenticated user.

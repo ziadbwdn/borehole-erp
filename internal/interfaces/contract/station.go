@@ -21,11 +21,11 @@ type StationRepository interface {
 
 // StationService defines the contract for station business logic.
 type StationService interface {
-	CreateStation(ctx context.Context, station *models.Station, createdBy utils.BinaryUUID) (*models.Station, *exception.AppError)
+	CreateStation(ctx context.Context, station *models.Station, createdBy utils.BinaryUUID, logCtx models.ActivityLogContext) (*models.Station, *exception.AppError)
 	GetStation(ctx context.Context, id utils.BinaryUUID) (*models.Station, *exception.AppError)
-	// --- FIX: Updated UpdateStation signature to include userRole ---
-	UpdateStation(ctx context.Context, stationID utils.BinaryUUID, req *dto.UpdateStationRequest) (*models.Station, *exception.AppError)
-	// --- END FIX ---
-	DeleteStation(ctx context.Context, id utils.BinaryUUID) *exception.AppError
+	UpdateStation(ctx context.Context, stationID utils.BinaryUUID, req *dto.UpdateStationRequest, logCtx models.ActivityLogContext) (*models.Station, *exception.AppError)
+	DeleteStation(ctx context.Context, id utils.BinaryUUID, logCtx models.ActivityLogContext) *exception.AppError
 	ListStationsByProject(ctx context.Context, projectID utils.BinaryUUID) ([]*models.Station, *exception.AppError)
+	ExportStationPointsGeo(ctx context.Context, projectID utils.BinaryUUID, logCtx models.ActivityLogContext) ([]*dto.StationPointGeoResponse, *exception.AppError)
+	ExportStationPointsUTM(ctx context.Context, projectID utils.BinaryUUID, logCtx models.ActivityLogContext) ([]*dto.StationPointUTMResponse, *exception.AppError)
 }

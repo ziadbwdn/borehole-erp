@@ -6,7 +6,7 @@ import (
 
 	"boreholedata-ms/internal/api/dto"
 	"boreholedata-ms/internal/exception"
-	"boreholedata-ms/internal/interfaces/contract" // Import the contract package for the service interface
+	"boreholedata-ms/internal/interfaces/contract"
 	"boreholedata-ms/internal/logger"
 	"boreholedata-ms/internal/models"
 	"boreholedata-ms/internal/utils" // For BinaryUUID
@@ -15,7 +15,7 @@ import (
 // userActivityService implements the contract.UserActivityService interface.
 type userActivityService struct {
 	repo   contract.UserActivityRepository // Dependency on the repository interface
-	logger logger.Logger                   // Dependency on the logger
+	logger logger.Logger                 // Dependency on the logger
 	// Add other dependencies if needed, e.g., a user service to validate UserIDs
 }
 
@@ -60,6 +60,7 @@ func (s *userActivityService) LogUserActivity(ctx context.Context, userIDStr, us
 
 	// 2. Construct the UserActivity model
 	activity := &models.UserActivity{
+		ID:           utils.NewBinaryUUID(), // <--- GENERATE NEW ID HERE
 		UserID:       userID,
 		Username:     username,
 		ActionType:   actionType,
@@ -69,13 +70,13 @@ func (s *userActivityService) LogUserActivity(ctx context.Context, userIDStr, us
 		Details:      details,
 		OldValue:     oldValue,
 		NewValue:     newValue,
-		// Timestamp will be set by the repository
-		// ID will be set by the repository
+		// Timestamp will be set by the repository (or GORM's hooks if configured)
 	}
 
 	// 3. Call the repository to create the activity
 	if err := s.repo.Create(ctx, activity); err != nil {
 		s.logger.Error(ctx, "Failed to create user activity in repository", err,
+			logger.Field{Key: "activityID", Value: activity.ID.String()}, // Log generated ID here
 			logger.Field{Key: "userID", Value: userIDStr},
 			logger.Field{Key: "actionType", Value: actionType})
 		return exception.NewDatabaseError(op, err) // Wrap repository error

@@ -17,12 +17,14 @@ import (
 // LithologyHandler handles HTTP requests related to lithology log management.
 type LithologyHandler struct {
 	lithologyService contract.LithologyService
+	authService      contract.AuthService
 }
 
 // NewLithologyHandler creates and returns a new instance of LithologyHandler.
-func NewLithologyHandler(lithologyService contract.LithologyService) *LithologyHandler {
+func NewLithologyHandler(lithologyService contract.LithologyService, authService contract.AuthService) *LithologyHandler {
 	return &LithologyHandler{
 		lithologyService: lithologyService,
+		authService:      authService,
 	}
 }
 
@@ -31,22 +33,23 @@ func NewLithologyHandler(lithologyService contract.LithologyService) *LithologyH
 func (h *LithologyHandler) CreateLithologyLog(c *gin.Context) {
 	var req dto.CreateLithologyLogRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr)
+		http_response.HandleAppError(c, exception.NewValidationError("Invalid request body", err.Error()))
 		return
 	}
 
-	// --- Auth: Get User ID and Role from Context ---
-	createdBy, appErr := gin_helpers.GetUserIDFromContext(c)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
-	}
-
+	// 1. Get UserID, Role, and Username for authorization and logging
+	userID, appErr := gin_helpers.GetUserIDFromContext(c)
+	if appErr != nil { http_response.HandleAppError(c, appErr); return }
 	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	if appErr != nil { http_response.HandleAppError(c, appErr); return }
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID)
+	if appErr != nil { http_response.HandleAppError(c, appErr); return }
+
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
 	}
 	// --- End Auth ---
 
@@ -96,8 +99,7 @@ func (h *LithologyHandler) CreateLithologyLog(c *gin.Context) {
 	}
 
 	// --- Auth: Pass userRole to service ---
-	createdLog, appErr := h.lithologyService.CreateLog(c.Request.Context(), log, createdBy, userRole)
-	// --- End Auth ---
+	createdLog, appErr := h.lithologyService.CreateLog(c.Request.Context(), log, userID, userRole, logCtx)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
@@ -185,10 +187,28 @@ func (h *LithologyHandler) UpdateLithologyLog(c *gin.Context) {
 	}
 
 	// --- Auth: Get User Role from Context ---
+	// 1. Get UserID, Role, and Username for authorization and logging
+	userID, appErr := gin_helpers.GetUserIDFromContext(c)
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
 	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID)
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
 	}
 	// --- End Auth ---
 
@@ -271,15 +291,13 @@ func (h *LithologyHandler) UpdateLithologyLog(c *gin.Context) {
 	}
 
 	// --- Auth: Pass userRole to service ---
-	appErr = h.lithologyService.UpdateLog(c.Request.Context(), logToUpdate, userRole)
-	// --- End Auth ---
+	appErr = h.lithologyService.UpdateLog(c.Request.Context(), logToUpdate, userRole, logCtx)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	// After a successful update, fetch the updated log to return the most current state.
-	// This step is important if the service layer modifies fields like `UpdatedAt`.
+	// Fetch and return updated log (existing logic)
 	updatedLog, appErr := h.lithologyService.GetLogByID(c.Request.Context(), logID)
 	if appErr != nil {
 		http_response.HandleAppError(c, exception.NewInternalError("Failed to retrieve updated lithology log", appErr))
@@ -316,27 +334,42 @@ func (h *LithologyHandler) UpdateLithologyLog(c *gin.Context) {
 // @Router /api/lithology-logs/{id} [delete]
 func (h *LithologyHandler) DeleteLithologyLog(c *gin.Context) {
 	logID, appErr := gin_helpers.ParseIDFromContext(c, "id", "lithology log")
-	if appErr != nil {
-		return // Response already handled
-	}
+	if appErr != nil { return }
 
-	// --- Auth: Get User Role from Context ---
+	// 1. Get UserID, Role, and Username for authorization and logging
+	userID, appErr := gin_helpers.GetUserIDFromContext(c)
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+	
 	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+	
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID)
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
+	}
+
+	// 3. Call the service with userRole and the new logCtx parameter
+	appErr = h.lithologyService.DeleteLog(c.Request.Context(), logID, userRole, logCtx)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
-	// --- End Auth ---
-
-	// --- Auth: Pass userRole to service ---
-	appErr = h.lithologyService.DeleteLog(c.Request.Context(), logID, userRole)
-	// --- End Auth ---
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
-	}
-
-	http_response.RespondWithSuccess(c, http.StatusNoContent, nil) // 204 No Content for successful deletion
+	
+	http_response.RespondWithSuccess(c, http.StatusNoContent, nil)
 }
 
 // ListLithologyLogsByStation handles listing lithology logs for a specific station.

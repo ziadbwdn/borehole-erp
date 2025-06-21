@@ -20,7 +20,6 @@ func NewPDFGenerator() *PDFGenerator {
 }
 
 // GenerateBoreholeLogPDF generates a PDF report for a borehole log.
-// It takes station details, lithology logs, lab samples, and UCS results.
 func (g *PDFGenerator) GenerateBoreholeLogPDF(
 	station *models.Station,
 	lithologyLogs []*models.LithologyLog,

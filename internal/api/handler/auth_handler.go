@@ -1,5 +1,3 @@
-// Replace your entire auth_handler.go file content with this version.
-
 package handler
 
 import (
@@ -7,9 +5,8 @@ import (
 	"boreholedata-ms/internal/exception"
 	"boreholedata-ms/internal/interfaces/contract"
 	"boreholedata-ms/pkg/gin_helpers"
-	"boreholedata-ms/pkg/http_response" // Using the finalized response package
+	"boreholedata-ms/pkg/http_response"
 	"net/http"
-	"strings" // Import strings package
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,17 +26,21 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr) // CORRECTED
+		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	profile, appErr := h.authService.Register(c.Request.Context(), req)
+    // Get client IP address
+    ipAddress := c.ClientIP()
+
+    // Pass ipAddress to the service
+	profile, appErr := h.authService.Register(c.Request.Context(), req, ipAddress)
 	if appErr != nil {
-		http_response.HandleAppError(c, appErr) // CORRECTED
+		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	http_response.RespondWithSuccess(c, http.StatusCreated, profile) // CORRECTED
+	http_response.RespondWithSuccess(c, http.StatusCreated, profile)
 }
 
 // Login handles user login requests.
@@ -47,40 +48,41 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr) // CORRECTED
+		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	tokenResponse, appErr := h.authService.Login(c.Request.Context(), req)
+    // Get client IP address
+    ipAddress := c.ClientIP()
+
+    // Pass ipAddress to the service
+	tokenResponse, appErr := h.authService.Login(c.Request.Context(), req, ipAddress)
 	if appErr != nil {
-		http_response.HandleAppError(c, appErr) // CORRECTED
+		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	http_response.RespondWithSuccess(c, http.StatusOK, tokenResponse) // CORRECTED
+	http_response.RespondWithSuccess(c, http.StatusOK, tokenResponse)
 }
 
 // Logout handles user logout requests.
 func (h *AuthHandler) Logout(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
-
-	// LOGIC FIX: Extract the raw token from "Bearer <token>"
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
-	if tokenString == authHeader || tokenString == "" {
-		appErr := exception.NewAuthError("Authorization token is missing or malformed")
-		http_response.HandleAppError(c, appErr) // CORRECTED
+	var req dto.LogoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := exception.NewValidationError("Invalid request: missing refresh_token in body", err.Error())
+		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	// Pass the RAW token to the service.
-	appErr := h.authService.Logout(c.Request.Context(), tokenString)
+	ipAddress := c.ClientIP()
+	appErr := h.authService.Logout(c.Request.Context(), req.RefreshToken, ipAddress)
+	
 	if appErr != nil {
-		http_response.HandleAppError(c, appErr) // CORRECTED
+		http_response.HandleAppError(c, appErr)
 		return
 	}
 
-	http_response.RespondWithSuccess(c, http.StatusOK, gin.H{"message": "Logout successful"}) // CORRECTED
+	http_response.RespondWithSuccess(c, http.StatusOK, gin.H{"message": "Logout successful"})
 }
 
 // GetProfile retrieves the authenticated user's profile.
@@ -123,4 +125,24 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	http_response.RespondWithSuccess(c, http.StatusOK, profile) // CORRECTED
+}
+
+// refresh handler
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	var req dto.RefreshRequest
+	// 1. Bind the incoming JSON request to the RefreshRequest DTO.
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := exception.NewValidationError("Invalid request: missing refresh_token in body", err.Error())
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+
+	// 3. Call the auth service to perform the token refresh logic.
+	tokenResponse, appErr := h.authService.RefreshToken(c.Request.Context(), req)
+	if appErr != nil {
+		http_response.HandleAppError(c, appErr)
+		return
+	}
+
+	http_response.RespondWithSuccess(c, http.StatusOK, tokenResponse)
 }

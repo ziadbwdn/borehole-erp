@@ -28,6 +28,10 @@ const (
 	ActionTypeLogout               = "logout"
 	ActionTypeRegisterUser         = "register_user"
 	ActionTypeUpdateProfile        = "update_profile"
+	ActionTypePasswordResetRequest = "password_reset_request" // When a user requests a password reset link
+	ActionTypePasswordReset      = "password_reset"         // When a user successfully resets their password
+	ActionTypeEmailVerified      = "email_verified"         // When a user successfully verifies their email
+	ActionTypeTokenRefresh       = "token_refresh"          // When a user refreshes their access token
 	ActionTypeCreateProject        = "create_project"
 	ActionTypeUpdateProject        = "update_project"
 	ActionTypeDeleteProject        = "delete_project"
@@ -53,6 +57,8 @@ const (
 	ActionTypeFailedLogin          = "failed_login_attempt"
 	ActionTypeUnauthorizedAccess   = "unauthorized_access"
 	ActionTypeRoleChange           = "role_change"
+	ActionTypeExportGeoData        = "export_geo_data"  // For the simple lat/lon export
+	ActionTypeExportUTMData        = "export_utm_data"  // For the combined UTM export
 )
 
 // ResourceType constants for affected entities.
@@ -64,7 +70,16 @@ const (
 	ResourceTypeSample    = "Sample"
 	ResourceTypeLabTest   = "LabTest"
 	ResourceTypeUCSResult = "UCSResult"
+	ResourceTypeReport    = "Report"
+	ResourceTypeExport    = "Export"
 )
+
+// ActivityLogContext holds metadata for an action, gathered by the handler.
+type ActivityLogContext struct {
+	UserID    string
+	Username  string
+	IPAddress string
+}
 
 // UserActivitySummary provides aggregated activity data for reporting.
 type UserActivitySummary struct {
@@ -75,6 +90,7 @@ type UserActivitySummary struct {
 	UpdateOperations     int64            `json:"updateOperations"`
 	DeleteOperations     int64            `json:"deleteOperations"`
 	ReportGenerations    int64            `json:"reportGenerations"`
+	ExportGenerations    int64            `json:"exportGenerations"`
 	LastActivity         time.Time        `json:"lastActivity"`
 	MostAccessedResource string           `json:"mostAccessedResource"`
 }

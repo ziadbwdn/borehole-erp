@@ -18,7 +18,7 @@ type CreateStationRequest struct {
 	GWL            string           `json:"groundwater_level" binding:"required"`
 	TotalDepth     string           `json:"total_depth" binding:"required"`
 	DrillingDate   *time.Time       `json:"drilling_date,omitempty"`
-	DrillingStatus string           `json:"drilling_status,omitempty" binding:"omitempty,max=50"` // Added drilling status
+	DrillingStatus string           `json:"drilling_status,omitempty" binding:"omitempty,max=50"`
 	GeologistName  string           `json:"geologist_name" binding:"max=100"`
 	Notes          string           `json:"notes"`
 }
@@ -35,7 +35,7 @@ type UpdateStationRequest struct {
 	GWL            *string    `json:"groundwater_level,omitempty"`
 	TotalDepth     *string    `json:"total_depth,omitempty"`
 	DrillingDate   *time.Time `json:"drilling_date,omitempty"`
-	DrillingStatus *string    `json:"drilling_status,omitempty" binding:"omitempty,max=50"` // Added drilling status
+	DrillingStatus *string    `json:"drilling_status,omitempty" binding:"omitempty,max=50"` 
 	GeologistName  *string    `json:"geologist_name,omitempty" binding:"omitempty,max=100"`
 	Notes          *string    `json:"notes,omitempty"`
 }
@@ -53,14 +53,34 @@ type StationResponse struct {
 	GWL            string           `json:"groundwater_level,omitempty"`
 	TotalDepth     string           `json:"total_depth"`
 	DrillingDate   *time.Time       `json:"drilling_date,omitempty"`
-	DrillingStatus string           `json:"drilling_status"` // Added drilling status
+	DrillingStatus string           `json:"drilling_status"`
 	GeologistName  string           `json:"geologist_name"`
 	Notes          string           `json:"notes"`
-	ProjectName    string           `json:"project_name,omitempty"` // Added for response enrichment
+	ProjectName    string           `json:"project_name,omitempty"` 
 	CreatedAt      time.Time        `json:"created_at"`
 	UpdatedAt      time.Time        `json:"updated_at,omitempty"`
 }
 
+// StationPointGeoResponse: Geographic only
+type StationPointGeoResponse struct {
+	StationCode string `json:"station_code"`
+	Latitude    string `json:"latitude"`
+	Longitude   string `json:"longitude"`
+	Elevation   string `json:"elevation"`
+}
+
+// StationPointUTMResponse: Geographic and UTM  
+type StationPointUTMResponse struct {
+	StationCode string `json:"station_code"`
+	Latitude    string `json:"latitude"`
+	Longitude   string `json:"longitude"`
+	Elevation   string `json:"elevation"`
+	UTMZone     string `json:"utm_zone"`
+	Easting  string `json:"easting"`
+	Northing string `json:"northing"`
+}
+
+// map station to response
 func MapStationToResponse(station *models.Station) *StationResponse {
 	if station == nil {
 		return nil

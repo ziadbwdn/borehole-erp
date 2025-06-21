@@ -50,3 +50,8 @@ type RefreshResponse struct {
 	ExpiresAt    time.Time `json:"expires_at"`    // New access token expiry
 	TokenType    string    `json:"token_type"`
 }
+
+// LogoutRequest defines the expected body for a logout request.
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}

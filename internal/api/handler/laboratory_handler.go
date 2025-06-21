@@ -16,13 +16,15 @@ import (
 
 // LaboratoryHandler handles HTTP requests related to laboratory samples and UCS results.
 type LaboratoryHandler struct {
-	labService contract.LaboratoryService // Dependency on the laboratory service
+	labService  contract.LaboratoryService
+	authService contract.AuthService
 }
 
 // NewLaboratoryHandler creates and returns a new instance of LaboratoryHandler.
-func NewLaboratoryHandler(labService contract.LaboratoryService) *LaboratoryHandler {
+func NewLaboratoryHandler(labService contract.LaboratoryService, authService contract.AuthService) *LaboratoryHandler {
 	return &LaboratoryHandler{
-		labService: labService,
+		labService:  labService,
+		authService: authService,
 	}
 }
 
@@ -31,17 +33,28 @@ func NewLaboratoryHandler(labService contract.LaboratoryService) *LaboratoryHand
 func (h *LaboratoryHandler) CreateLabSample(c *gin.Context) {
 	var req dto.CreateLabSampleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr)
-		return
+		http_response.HandleAppError(c, exception.NewValidationError("Invalid request body", err.Error())); return
 	}
 
-	// --- Auth: Get User Role from Context ---
-	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
 	}
+
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	logCtx := models.ActivityLogContext{ UserID: userID.String(), Username: username, IPAddress: c.ClientIP() }
 	// --- End Auth ---
 
 	// Convert string decimal values from DTO to utils.GormDecimal
@@ -81,7 +94,7 @@ func (h *LaboratoryHandler) CreateLabSample(c *gin.Context) {
 	}
 
 	// --- Auth: Pass userRole to service ---
-	createdSample, appErr := h.labService.CreateSample(c.Request.Context(), sample, userRole)
+	createdSample, appErr := h.labService.CreateSample(c.Request.Context(), sample, userRole, logCtx)
 	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
@@ -170,16 +183,33 @@ func (h *LaboratoryHandler) UpdateLabSample(c *gin.Context) {
 
 	var req dto.UpdateLabSampleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr)
+		http_response.HandleAppError(c, exception.NewValidationError("Invalid request body", err.Error())); 
 		return
 	}
 
 	// --- Auth: Get User Role from Context ---
-	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	logCtx := models.ActivityLogContext{ 
+		UserID: userID.String(), 
+		Username: username, 
+		IPAddress: c.ClientIP(),
 	}
 	// --- End Auth ---
 
@@ -239,7 +269,7 @@ func (h *LaboratoryHandler) UpdateLabSample(c *gin.Context) {
 	}
 
 	// --- Auth: Pass userRole to service ---
-	appErr = h.labService.UpdateSample(c.Request.Context(), sampleToUpdate, userRole)
+	appErr = h.labService.UpdateSample(c.Request.Context(), sampleToUpdate, userRole, logCtx)
 	// --- End Auth ---
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
@@ -249,7 +279,7 @@ func (h *LaboratoryHandler) UpdateLabSample(c *gin.Context) {
 	// Retrieve the updated sample to return the full, current state
 	updatedSample, appErr := h.labService.GetSample(c.Request.Context(), sampleID)
 	if appErr != nil {
-		http_response.HandleAppError(c, appErr) // Should not happen if update was successful
+		http_response.HandleAppError(c, appErr)
 		return
 	}
 
@@ -284,28 +314,35 @@ func (h *LaboratoryHandler) UpdateLabSample(c *gin.Context) {
 // DeleteLabSample handles deleting a laboratory sample by ID.
 // @Router /api/lab-samples/{id} [delete]
 func (h *LaboratoryHandler) DeleteLabSample(c *gin.Context) {
-	sampleID, appErr := gin_helpers.ParseIDFromContext(c, "id", "lab sample")
-	if appErr != nil {
-		return // Response already handled
+	sampleID, appErr := gin_helpers.ParseIDFromContext(c, "id", "lab sample"); if appErr != nil { return }
+
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
 	}
 
-	// --- Auth: Get User Role from Context ---
-	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	logCtx := models.ActivityLogContext{ UserID: userID.String(), Username: username, IPAddress: c.ClientIP() }
+
+	appErr = h.labService.DeleteSample(c.Request.Context(), sampleID, userRole, logCtx)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
 	}
-	// --- End Auth ---
-
-	// --- Auth: Pass userRole to service ---
-	appErr = h.labService.DeleteSample(c.Request.Context(), sampleID, userRole)
-	// --- End Auth ---
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
-	}
-
-	http_response.RespondWithSuccess(c, http.StatusNoContent, nil) // 204 No Content for successful deletion
+	
+	http_response.RespondWithSuccess(c, http.StatusNoContent, nil)
 }
 
 // ListLabSamplesByStation handles listing lab samples for a specific station.
@@ -364,16 +401,34 @@ func (h *LaboratoryHandler) ListLabSamplesByStation(c *gin.Context) {
 func (h *LaboratoryHandler) CreateUCSResult(c *gin.Context) {
 	var req dto.CreateUCSResultRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr)
+		http_response.HandleAppError(c, exception.NewValidationError("Invalid request body", err.Error()))
 		return
 	}
 
 	// --- Auth: Get User Role from Context ---
-	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
 	}
 	// --- End Auth ---
 
@@ -409,8 +464,7 @@ func (h *LaboratoryHandler) CreateUCSResult(c *gin.Context) {
 	}
 
 	// --- Auth: Pass userRole to service ---
-	createdUCS, appErr := h.labService.CreateUCSResult(c.Request.Context(), ucs, userRole)
-	// --- End Auth ---
+	createdUCS, appErr := h.labService.CreateUCSResult(c.Request.Context(), ucs, userRole, logCtx)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
@@ -469,23 +523,42 @@ func (h *LaboratoryHandler) GetUCSResultByID(c *gin.Context) {
 // UpdateUCSResult handles updating an existing UCS result.
 // @Router /api/ucs-results/{id} [put]
 func (h *LaboratoryHandler) UpdateUCSResult(c *gin.Context) {
-	ucsID, appErr := gin_helpers.ParseIDFromContext(c, "id", "UCS result")
+	ucsID, appErr := gin_helpers.ParseIDFromContext(c, "id", "UCS result"); 
 	if appErr != nil {
-		return // Response already handled
+		return 
 	}
 
 	var req dto.UpdateUCSResultRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		appErr := exception.NewValidationError("Invalid request body", err.Error())
-		http_response.HandleAppError(c, appErr)
+		http_response.HandleAppError(c, exception.NewValidationError("Invalid request body", err.Error())); 
 		return
 	}
 
-	// --- Auth: Get User Role from Context ---
-	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	// --- Auth: 
+	// 1. Get UserID, Role, and Username for authorization and logging
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	
+	}
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
 	}
 	// --- End Auth ---
 
@@ -535,8 +608,8 @@ func (h *LaboratoryHandler) UpdateUCSResult(c *gin.Context) {
 	}
 
 	// --- Auth: Pass userRole to service ---
-	appErr = h.labService.UpdateUCSResult(c.Request.Context(), ucsToUpdate, userRole)
-	// --- End Auth ---
+	appErr = h.labService.UpdateUCSResult(c.Request.Context(), ucsToUpdate, userRole, logCtx)
+
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return
@@ -544,9 +617,9 @@ func (h *LaboratoryHandler) UpdateUCSResult(c *gin.Context) {
 
 	// Retrieve the updated UCS result to return the full, current state
 	updatedUCS, appErr := h.labService.GetUCSResult(c.Request.Context(), ucsID)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr) // Should not happen if update was successful
-		return
+	if appErr != nil { 
+		http_response.HandleAppError(c, exception.NewInternalError("Failed to retrieve updated UCS result", appErr)); 
+		return 
 	}
 
 	// Map updated model back to response DTO
@@ -576,16 +649,34 @@ func (h *LaboratoryHandler) DeleteUCSResult(c *gin.Context) {
 	}
 
 	// --- Auth: Get User Role from Context ---
-	userRole, appErr := gin_helpers.GetUserRoleFromContext(c)
-	if appErr != nil {
-		http_response.HandleAppError(c, appErr)
-		return
+	userID, appErr := gin_helpers.GetUserIDFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	userRole, appErr := gin_helpers.GetUserRoleFromContext(c); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	username, appErr := h.authService.GetUserDetailsForLogging(c.Request.Context(), userID); 
+	if appErr != nil { 
+		http_response.HandleAppError(c, appErr); 
+		return 
+	}
+
+	// 2. Prepare the ActivityLogContext
+	logCtx := models.ActivityLogContext{
+		UserID:    userID.String(),
+		Username:  username,
+		IPAddress: c.ClientIP(),
 	}
 	// --- End Auth ---
 
 	// --- Auth: Pass userRole to service ---
-	appErr = h.labService.DeleteUCSResult(c.Request.Context(), ucsID, userRole)
-	// --- End Auth ---
+	appErr = h.labService.DeleteUCSResult(c.Request.Context(), ucsID, userRole, logCtx)
 	if appErr != nil {
 		http_response.HandleAppError(c, appErr)
 		return

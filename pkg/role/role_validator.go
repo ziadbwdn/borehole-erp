@@ -4,9 +4,6 @@ import (
 	"boreholedata-ms/internal/models"
 )
 
-// NOTE: We have removed the Validator struct and New() function.
-// These are now simple, stateless package-level functions.
-
 // IsValid checks if a role is one of the predefined valid roles.
 func IsValid(role models.UserRole) bool {
 	switch role {
