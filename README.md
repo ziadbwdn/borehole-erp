@@ -1,3 +1,5 @@
+![GGD Logo](https://github.com/ziadbwdn/borehole_erp/docs/logo/GGD_logo.jpg?raw=true)
+
 # Borehole Data ERP
 
 A robust back-end service built in Go, designed to manage geotechnical and geological data for civil engineering and exploration projects.
