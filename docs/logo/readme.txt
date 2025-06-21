@@ -1,0 +1,1 @@
+Logo placement folder
