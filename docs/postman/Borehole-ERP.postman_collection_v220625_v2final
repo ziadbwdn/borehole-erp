@@ -1,0 +1,1347 @@
+{
+	"info": {
+		"_postman_id": "82fa3f9e-90fc-4de0-be90-d1d5777cf835",
+		"name": "Borehole-ERP",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "40938916"
+	},
+	"item": [
+		{
+			"name": "AUTH",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": [
+				{
+					"name": "POST REG",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "CONSOLE.LOG",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"yantokopling\",\r\n    \"password\":\"@Radical_bmx_123\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:8080/api/auth/login/"
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "PUT UPDATE",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "AUTH",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refresh_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJiMzQ4NTViNS1mOWNhLTRhODgtYTE4NS0xNDE5OWEyODk5ZTEiLCJyb2xlIjoiIiwidHlwZSI6InJlZnJlc2giLCJleHAiOjE3NTExMTU2ODYsImlhdCI6MTc1MDUxMDg4Nn0.ak29h49JVqQYK22S2NkeQFZaIiB1kHqVeNp7b1CyQ78\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:8080/api/auth/refresh/"
+					},
+					"_postman_previewlanguage": "",
+					"header": [],
+					"cookie": [
+						{
+							"expires": "Invalid Date"
+						}
+					],
+					"body": ""
+				},
+				{
+					"name": "AUTH",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				}
+			]
+		},
+		{
+			"name": "PROJECT",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": [
+				{
+					"name": "POST REG",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0MTgwZTQ4Yi05ODk4LTQ0NmItOThjYS0xZmEzZWVmYTcyYjIiLCJyb2xlIjoiZW5naW5lZXIiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUwNTAwOTg3LCJpYXQiOjE3NTA0OTU1ODd9.Leu758BOlzLxRPh8X6Nn21lIOgZIosWTkBQPeWTy4VM",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Sentosa Island Development\",\r\n    \"description\": \"SID-2024\",\r\n    \"location\": \"Sentosa Island, Singapore\",\r\n    \"start_date\": \"2024-01-15T00:00:00Z\",\r\n    \"end_date\": \"2025-01-15T00:00:00Z\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "http://localhost:8080/api/projects"
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "GET PROJ",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "GET PROJ LIST",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "PUT UPDATE",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "DELETE",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				}
+			]
+		},
+		{
+			"name": "STATION",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": [
+				{
+					"name": "STATION POST",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "STATION GET",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "STATION UPDATE",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "STATION DELETE",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "STATION LIST FROM ONE PROJ",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "STATION LIST FROM ONE PROJ Copy",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				}
+			]
+		},
+		{
+			"name": "LITHOLOGY",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": [
+				{
+					"name": "POST LITHOLOGY",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "GET LITHOLOGY",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "PUT LITHOLOGY",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "DELETE LITHOLOGY",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				}
+			]
+		},
+		{
+			"name": "LAB-UCS",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": [
+				{
+					"name": "LAB CREATE",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "UCS CREATE",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "GET LAB",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "GET UCS",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "PUT LAB",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "PUT UCS",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "DELETE UCS",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				}
+			]
+		},
+		{
+			"name": "REPORT",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": [
+				{
+					"name": "STA REPORT",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				}
+			]
+		},
+		{
+			"name": "ACTIVITIES",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJiMzQ4NTViNS1mOWNhLTRhODgtYTE4NS0xNDE5OWEyODk5ZTEiLCJyb2xlIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUwNjE0NDkxLCJpYXQiOjE3NTA2MDkwOTF9.3ML7Ur6g25ZJ2qK-frFMgiNyAyh1pCb81eneS3yMI54",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/activities"
+			},
+			"response": [
+				{
+					"name": "GET ACTIVITIES",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				},
+				{
+					"name": "GET ACTIVITYSUM GEO",
+					"originalRequest": {
+						"method": "GET",
+						"header": []
+					},
+					"_postman_previewlanguage": null,
+					"header": null,
+					"cookie": [],
+					"body": null
+				}
+			]
+		},
+		{
+			"name": "http://localhost:8080/api/auth/register/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"yantokopling\",\r\n    \"email\":\"yantonugrahag@godeepgeo.id\",\r\n    \"password\":\"@Radical_bmx_123\",\r\n    \"fullName\":\"Yanto Nugraha\",\r\n    \"role\": \"admin\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/register/"
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8080/api/auth/register/",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"tohahmad\",\r\n    \"email\":\"tohahmad@godeepgeo.id\",\r\n    \"password\":\"@Radical_bmx_234\",\r\n    \"fullName\":\"Ahmad Toha\",\r\n    \"role\": \"lab_technician\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/register/"
+			},
+			"response": []
+		},
+		{
+			"name": "POST REG NEW ROLE",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"mohamedavdol\",\r\n    \"email\":\"diobrandog@godeepgeo.id\",\r\n    \"password\":\"@Radical_bmX_k1d\",\r\n    \"fullName\":\"Mohamed Avdol\",\r\n    \"role\": \"geologist\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/register/"
+			},
+			"response": []
+		},
+		{
+			"name": "POST REG FAILED - EMAIL DOUBLE",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"vickypras\",\r\n    \"email\":\"vickypras@godeepgeo.id\",\r\n    \"password\":\"@Radical_bmx_123\",\r\n    \"fullName\":\"Vicky Prasetyo.\",\r\n    \"role\": \"admin\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/register/"
+			},
+			"response": []
+		},
+		{
+			"name": "POST LOGIN ADMIN",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"yantokopling\",\r\n    \"password\":\"@Radical_bmx_123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/login/"
+			},
+			"response": []
+		},
+		{
+			"name": "POST LOGIN ENG",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"steveking\",\r\n    \"password\":\"@Radical_bmX_k1d\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/login/"
+			},
+			"response": []
+		},
+		{
+			"name": "POST LOGIN ENG 2 - FAILED",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"wahyueko\",\r\n    \"password\":\"@Radical_bmx_123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/login/"
+			},
+			"response": []
+		},
+		{
+			"name": "POST LOGIN LAB_TECH",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"tohahmad\",\r\n    \"password\":\"@Radical_bmx_234\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/login/"
+			},
+			"response": []
+		},
+		{
+			"name": "POST LOGIN GEO 1",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"richieguix\",\r\n    \"password\":\"@Radical_bmx_k1d\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/login/"
+			},
+			"response": []
+		},
+		{
+			"name": "POST LOGIN GEO 2",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"mohamedavdol\",\r\n    \"password\":\"@Radical_bmX_k1d\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/login/"
+			},
+			"response": []
+		},
+		{
+			"name": "GET PROFILE GEO 1 OK",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMjA0MSwiaWF0IjoxNzUwNjA2NjQxfQ.sZap4n3OSSQQmFW1taAlFqWP2AKz5FgsZzk2vIdVWvY",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"mohamedavdol\",\r\n    \"password\":\"@Radical_bmX_k1d\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/profile"
+			},
+			"response": []
+		},
+		{
+			"name": "PUT PROFILE GEO 1 OK - Name",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMjA0MSwiaWF0IjoxNzUwNjA2NjQxfQ.sZap4n3OSSQQmFW1taAlFqWP2AKz5FgsZzk2vIdVWvY",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"esogolang@godeepgeo.id\",\r\n    \"fullName\": \"Jester Hartman\",\r\n    \"password\":\"@Radical_bmx_k1d\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/profile"
+			},
+			"response": []
+		},
+		{
+			"name": "REFRESH TOKEN - GE0 1",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"refresh_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJiMzQ4NTViNS1mOWNhLTRhODgtYTE4NS0xNDE5OWEyODk5ZTEiLCJyb2xlIjoiIiwidHlwZSI6InJlZnJlc2giLCJleHAiOjE3NTExMTU2ODYsImlhdCI6MTc1MDUxMDg4Nn0.ak29h49JVqQYK22S2NkeQFZaIiB1kHqVeNp7b1CyQ78\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/refresh/"
+			},
+			"response": []
+		},
+		{
+			"name": "LOGOUT - GE0 2 OK",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"refresh_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJiMzQ4NTViNS1mOWNhLTRhODgtYTE4NS0xNDE5OWEyODk5ZTEiLCJyb2xlIjoiIiwidHlwZSI6InJlZnJlc2giLCJleHAiOjE3NTExMTU2ODYsImlhdCI6MTc1MDUxMDg4Nn0.ak29h49JVqQYK22S2NkeQFZaIiB1kHqVeNp7b1CyQ78\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/auth/refresh/"
+			},
+			"response": []
+		},
+		{
+			"name": "Post Project 201 dan 403",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJkYWJiMzgxMi0yMGVmLTQ0Y2EtYjM2NS1lZGMxZjdmYTY4NzQiLCJyb2xlIjoibGFiX3RlY2huaWNpYW4iLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUwNjAyNjI1LCJpYXQiOjE3NTA1OTcyMjV9.6ep4xgztBMScPewOv1_k6cyOsezcjdTmkl2vpbALXCA",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Sentosa Island Development\",\r\n    \"description\": \"SID-2023\",\r\n    \"location\": \"Sentosa Island, Konoha\",\r\n    \"start_date\": \"2024-01-15T00:00:00Z\",\r\n    \"end_date\": \"2025-01-15T00:00:00Z\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/projects"
+			},
+			"response": []
+		},
+		{
+			"name": "GET PROJECT - ENG OK",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI4NDY2YWRiYi0zNTM3LTRkMDctOTFiZi1jZDRhZDI0YTgwNDciLCJyb2xlIjoiZW5naW5lZXIiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUwNjA1MzcyLCJpYXQiOjE3NTA1OTk5NzJ9.2N0MZhyukGEOlHfGMCK-vsRWLV2kdnFQQQRSWwWHb-8",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/projects/5aab345b-4461-4666-a229-a0b10dc8238b",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"projects",
+						"5aab345b-4461-4666-a229-a0b10dc8238b"
+					],
+					"query": [
+						{
+							"key": "",
+							"value": "",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "PUT PROJECT - ENG OK",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI4NDY2YWRiYi0zNTM3LTRkMDctOTFiZi1jZDRhZDI0YTgwNDciLCJyb2xlIjoiZW5naW5lZXIiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUwNjA1MzcyLCJpYXQiOjE3NTA1OTk5NzJ9.2N0MZhyukGEOlHfGMCK-vsRWLV2kdnFQQQRSWwWHb-8",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Sentosa Island Drilling\",\r\n    \"description\": \"Water Leak Study and Maintenance Development\",\r\n    \"location\": \"Sentosa Island, Wakanda\",\r\n    \"status\": \"ongoing\",\r\n    \"start_date\": \"2024-01-15T00:00:00Z\",\r\n    \"end_date\": \"2025-01-15T00:00:00Z\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/projects/5aab345b-4461-4666-a229-a0b10dc8238b"
+			},
+			"response": []
+		},
+		{
+			"name": "PUT PROJECT - GEO 1 FAILED",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYwMzQ3MSwiaWF0IjoxNzUwNTk4MDcxfQ.UqBB1rFen7rDd75Wc9kO4FgJtoJndXIGdW0_nULj8m0",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Sentosa Island Development\",\r\n    \"description\": \"SID-2022\",\r\n    \"location\": \"Sentosa Island, Malaysia\",\r\n    \"status\": \"halt\",\r\n    \"start_date\": \"2024-01-15T00:00:00Z\",\r\n    \"end_date\": \"2025-01-15T00:00:00Z\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/projects/26730d12-9504-437e-9e85-9ee501ddd0cf"
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE PROJECT - OK",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI4NDY2YWRiYi0zNTM3LTRkMDctOTFiZi1jZDRhZDI0YTgwNDciLCJyb2xlIjoiZW5naW5lZXIiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUwNjA1MzcyLCJpYXQiOjE3NTA1OTk5NzJ9.2N0MZhyukGEOlHfGMCK-vsRWLV2kdnFQQQRSWwWHb-8",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/projects/a7bfd522-88fe-425c-ab3b-d5d1eeb3811b"
+			},
+			"response": []
+		},
+		{
+			"name": "POST STATION - GEO 1 OK",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYwNjc0NCwiaWF0IjoxNzUwNjAxMzQ0fQ.pTI-75tp-pGH9R5v0b0cEYZMo6K99XR0nLLYrNBS8gg",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"project_id\": \"5aab345b-4461-4666-a229-a0b10dc8238b\",\r\n    \"station_code\": \"STA005-BH01\",\r\n    \"station_name\": \"Borehole Near Alabasta Kingdom\",\r\n    \"station_type\": \"Exploratory Borehole\",\r\n    \"latitude\": \"-6.5078\",\r\n    \"longitude\": \"104.0456\",\r\n    \"elevation\": \"428.50\",\r\n    \"groundwater_level\": \"2.45\",\r\n    \"total_depth\": \"30.5\",\r\n    \"drilling_date\": \"2024-05-20T00:00:00Z\",\r\n    \"drilling_status\": \"installation\",\r\n    \"geologist_name\": \"Richie Guix\",\r\n    \"notes\": \"D+1 mobilization day, drilling equipment installation\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/stations"
+			},
+			"response": []
+		},
+		{
+			"name": "GET STATION - GEO 1 OK",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYwNjc0NCwiaWF0IjoxNzUwNjAxMzQ0fQ.pTI-75tp-pGH9R5v0b0cEYZMo6K99XR0nLLYrNBS8gg",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/stations/29520b7e-9ed9-42e9-b21c-462a01a968aa"
+			},
+			"response": []
+		},
+		{
+			"name": "PUT STATION - LAB_TECH FAIL",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYwNjc0NCwiaWF0IjoxNzUwNjAxMzQ0fQ.pTI-75tp-pGH9R5v0b0cEYZMo6K99XR0nLLYrNBS8gg",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"station_code\": \"STA003-BH02\",\r\n    \"station_name\": \"Borehole Near East Gate\",\r\n    \"station_type\": \"Exploratory Borehole\",\r\n    \"latitude\": \"-6.4088\",\r\n    \"longitude\": \"107.8456\",\r\n    \"elevation\": \"228.10\",\r\n    \"groundwater_level\": \"2.15\",\r\n    \"total_depth\": \"30.5\",\r\n    \"drilling_date\": \"2024-05-20T00:00:00Z\",\r\n    \"drilling_status\": \"ongoing\",\r\n    \"geologist_name\": \"Kai Lentit\",\r\n    \"notes\": \"25 m, prepare logging installation and casing adjustment\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/stations/b6bf164f-87c3-4337-8e48-311c79ae5be6"
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE STATION POSTED - OK",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMDMwNywiaWF0IjoxNzUwNjA0OTA3fQ.sASZ86YjPJqP-wpKOwjH2g_v7CH_43qmh8CtPniEPf4",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/stations/df8c6927-7e43-4e7f-923d-18d0ba90d75e"
+			},
+			"response": []
+		},
+		{
+			"name": "STATION LIST FROM PROJ ID - GEO 1 OK",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMDMwNywiaWF0IjoxNzUwNjA0OTA3fQ.sASZ86YjPJqP-wpKOwjH2g_v7CH_43qmh8CtPniEPf4",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/projects/0c9f80c4-8c3e-48a9-b507-77b750be7557/stations"
+			},
+			"response": []
+		},
+		{
+			"name": "PROJ-STAT UTM CONVERT - GEO 1 OK",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMDMwNywiaWF0IjoxNzUwNjA0OTA3fQ.sASZ86YjPJqP-wpKOwjH2g_v7CH_43qmh8CtPniEPf4",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/projects/0c9f80c4-8c3e-48a9-b507-77b750be7557/stations/export/utm"
+			},
+			"response": []
+		},
+		{
+			"name": "GET LITHOLOGY LOG - GEO 1 OK",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMjA0MSwiaWF0IjoxNzUwNjA2NjQxfQ.sZap4n3OSSQQmFW1taAlFqWP2AKz5FgsZzk2vIdVWvY",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/lithology-logs/987925a1-db35-4003-b35e-739c62df08f5"
+			},
+			"response": []
+		},
+		{
+			"name": "PUT LITHOLOGY LOG 1 GEO 1 - OK",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMjA0MSwiaWF0IjoxNzUwNjA2NjQxfQ.sZap4n3OSSQQmFW1taAlFqWP2AKz5FgsZzk2vIdVWvY",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{        \r\n    \"station_id\": \"b6bf164f-87c3-4337-8e48-311c79ae5be6\",\r\n    \"depth_from\": \"0.00\",\r\n    \"depth_to\": \"2.50\",\r\n    \"lithology_type\": \"Sandstone\",\r\n    \"rock_color\": \"Light Grey\",\r\n    \"grain_size\": \"Very fine sand\",\r\n    \"texture\": \"Soft\",\r\n    \"structure\": \"cross-laminated\",\r\n    \"hardness\": \"compact\",\r\n    \"weathering\": \"fresh\",\r\n    \"fracturing\": \"uneven\",\r\n    \"description\": \"Lithic sandstone with clay matrix and carbonate cement, glauconite\",\r\n    \"rqd_percentage\": \"50.00\",\r\n    \"recovery_percentage\": \"70.00\",\r\n    \"logged_by\": \"Kai Lentit\",\r\n    \"logged_date\": \"2025-06-17T10:44:13+07:00\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/lithology-logs/987925a1-db35-4003-b35e-739c62df08f5"
+			},
+			"response": []
+		},
+		{
+			"name": "POST LITHOLOGY LOG 2 - GEO 1 OK",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMjA0MSwiaWF0IjoxNzUwNjA2NjQxfQ.sZap4n3OSSQQmFW1taAlFqWP2AKz5FgsZzk2vIdVWvY",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"station_id\": \"b6bf164f-87c3-4337-8e48-311c79ae5be6\",\r\n    \"depth_from\": \"2.50\",\r\n    \"depth_to\": \"4.50\",\r\n    \"lithology_type\": \"Shale\",\r\n    \"rock_color\": \"Dark Brown\",\r\n    \"grain_size\": \"Silt to Clay\",\r\n    \"texture\": \"Soft\",\r\n    \"structure\": \"cross-laminated\",\r\n    \"hardness\": \"compact\",\r\n    \"weathering\": \"fresh\",\r\n    \"fracturing\": \"uneven\",\r\n    \"description\": \"mudstone with clay matrix and carbon-rich\",\r\n    \"rqd_percentage\": \"50\",\r\n    \"recovery_percentage\": \"70\",\r\n    \"logged_by\": \"Kai Lentit\",\r\n    \"logged_date\": \"2025-06-17T10:44:12.611112581+07:00\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/lithology-logs"
+			},
+			"response": []
+		},
+		{
+			"name": "POST LITHOLOGY LOG 3 - ENG FAILED",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI4NDY2YWRiYi0zNTM3LTRkMDctOTFiZi1jZDRhZDI0YTgwNDciLCJyb2xlIjoiZW5naW5lZXIiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUwNjEzMDU5LCJpYXQiOjE3NTA2MDc2NTl9.wRpqXxHsh4Ko01N1r_8wz0vkas4mq8ronPRE6GYwn1M",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"station_id\": \"b6bf164f-87c3-4337-8e48-311c79ae5be6\",\r\n    \"depth_from\": \"4.50\",\r\n    \"depth_to\": \"6.40\",\r\n    \"lithology_type\": \"Siltstone\",\r\n    \"rock_color\": \"Light Brown\",\r\n    \"grain_size\": \"Very fine sand\",\r\n    \"texture\": \"Soft\",\r\n    \"structure\": \"cross-laminated\",\r\n    \"hardness\": \"compact\",\r\n    \"weathering\": \"fresh\",\r\n    \"fracturing\": \"uneven\",\r\n    \"description\": \"Arkosic sandstone with clay matrix and carbonaceous band, glauconite\",\r\n    \"rqd_percentage\": \"50\",\r\n    \"recovery_percentage\": \"70\",\r\n    \"logged_by\": \"Kai Lentit\",\r\n    \"logged_date\": \"2025-06-17T10:44:12.611112581+07:00\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/lithology-logs"
+			},
+			"response": []
+		},
+		{
+			"name": "POST LITHOLOGY LOG 3 - GEO 1 OK",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMjA0MSwiaWF0IjoxNzUwNjA2NjQxfQ.sZap4n3OSSQQmFW1taAlFqWP2AKz5FgsZzk2vIdVWvY",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"station_id\": \"b6bf164f-87c3-4337-8e48-311c79ae5be6\",\r\n    \"depth_from\": \"4.50\",\r\n    \"depth_to\": \"6.40\",\r\n    \"lithology_type\": \"Siltstone\",\r\n    \"rock_color\": \"Light Brown\",\r\n    \"grain_size\": \"Very fine sand\",\r\n    \"texture\": \"Soft\",\r\n    \"structure\": \"cross-laminated\",\r\n    \"hardness\": \"compact\",\r\n    \"weathering\": \"fresh\",\r\n    \"fracturing\": \"uneven\",\r\n    \"description\": \"Arkosic sandstone with clay matrix and carbonaceous band, glauconite\",\r\n    \"rqd_percentage\": \"50\",\r\n    \"recovery_percentage\": \"70\",\r\n    \"logged_by\": \"Kai Lentit\",\r\n    \"logged_date\": \"2025-06-17T10:44:12.611112581+07:00\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8080/api/lithology-logs"
+			},
+			"response": []
+		},
+		{
+			"name": "GET STAT - LITH LOG - GEO 1 OK",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMjA0MSwiaWF0IjoxNzUwNjA2NjQxfQ.sZap4n3OSSQQmFW1taAlFqWP2AKz5FgsZzk2vIdVWvY",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/stations/b6bf164f-87c3-4337-8e48-311c79ae5be6/lithology-logs"
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE LITH LOG - GEO 1 - OK",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMjA0MSwiaWF0IjoxNzUwNjA2NjQxfQ.sZap4n3OSSQQmFW1taAlFqWP2AKz5FgsZzk2vIdVWvY",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/lithology-logs/2f518acb-6444-47ea-9def-20c76560a671"
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE LITH LOG - GEO 1 OK",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiI0YmI0OTNmYS04ODljLTRmOGUtOTQzYi00ZDM0MjNhMzA1N2MiLCJyb2xlIjoiZ2VvbG9naXN0IiwidHlwZSI6ImFjY2VzcyIsImV4cCI6MTc1MDYxMjA0MSwiaWF0IjoxNzUwNjA2NjQxfQ.sZap4n3OSSQQmFW1taAlFqWP2AKz5FgsZzk2vIdVWvY",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/lithology-logs/696e2bc2-f213-445a-bbc2-8feacf018aae"
+			},
+			"response": []
+		},
+		{
+			"name": "GET ACTIVITIES ADMIN 1 OK",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJiMzQ4NTViNS1mOWNhLTRhODgtYTE4NS0xNDE5OWEyODk5ZTEiLCJyb2xlIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUwNjE0NDkxLCJpYXQiOjE3NTA2MDkwOTF9.3ML7Ur6g25ZJ2qK-frFMgiNyAyh1pCb81eneS3yMI54",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/activities"
+			},
+			"response": []
+		},
+		{
+			"name": "GET ACTIVITYSUM GEO 1 BY ADMIN OK",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJiMzQ4NTViNS1mOWNhLTRhODgtYTE4NS0xNDE5OWEyODk5ZTEiLCJyb2xlIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUwNjE0NDkxLCJpYXQiOjE3NTA2MDkwOTF9.3ML7Ur6g25ZJ2qK-frFMgiNyAyh1pCb81eneS3yMI54",
+						"type": "text"
+					}
+				],
+				"url": "http://localhost:8080/api/activities/summary/c5074a40-96ea-4bc1-b4be-6ca99b8191c3"
+			},
+			"response": []
+		}
+	]
+}
