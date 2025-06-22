@@ -21,7 +21,7 @@ func NewAuthHandler(authService contract.AuthService) *AuthHandler {
 	}
 }
 
-// Register handles user registration requests.
+// Register 
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -43,7 +43,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	http_response.RespondWithSuccess(c, http.StatusCreated, profile)
 }
 
-// Login handles user login requests.
+// Login 
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

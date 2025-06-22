@@ -1,0 +1,105 @@
+basePath: /api
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: This is the Borehole Data Management API documentation.
+  termsOfService: http://example.com/terms/
+  title: Borehole Data Management API
+  version: "1.0"
+paths:
+  /activities:
+    get:
+      responses: {}
+    post:
+      responses: {}
+  /activities/alerts:
+    get:
+      responses: {}
+  /activities/summary/{userID}:
+    get:
+      responses: {}
+  /api/lab-samples:
+    post:
+      responses: {}
+  /api/lab-samples/{id}:
+    delete:
+      responses: {}
+    get:
+      responses: {}
+    put:
+      responses: {}
+  /api/lab-samples/{sample_id}/ucs-results:
+    get:
+      responses: {}
+  /api/lithology-logs:
+    post:
+      responses: {}
+  /api/lithology-logs/{id}:
+    delete:
+      responses: {}
+    get:
+      responses: {}
+    put:
+      responses: {}
+  /api/projects:
+    get:
+      responses: {}
+    post:
+      responses: {}
+  /api/projects/{id}:
+    delete:
+      responses: {}
+    get:
+      responses: {}
+    put:
+      responses: {}
+  /api/projects/{id}/stations:
+    get:
+      responses: {}
+  /api/projects/{project_id}/stations:
+    get:
+      responses: {}
+  /api/reports/project/{project_id}:
+    get:
+      responses: {}
+  /api/stations:
+    post:
+      responses: {}
+  /api/stations/{id}:
+    delete:
+      responses: {}
+    get:
+      responses: {}
+    put:
+      responses: {}
+  /api/stations/{station_id}/lab-samples:
+    get:
+      responses: {}
+  /api/stations/{station_id}/lithology-logs:
+    get:
+      responses: {}
+  /api/stations/{station_id}/lithology-logs/by-depth:
+    get:
+      responses: {}
+  /api/ucs-results:
+    post:
+      responses: {}
+  /api/ucs-results/{id}:
+    delete:
+      responses: {}
+    get:
+      responses: {}
+    put:
+      responses: {}
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

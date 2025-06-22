@@ -1,3 +1,23 @@
+// @title Borehole Data Management API
+// @version 1.0
+// @description This is the Borehole Data Management API documentation.
+// @termsOfService http://example.com/terms/
+
+// @contact.name API Support
+// @contact.url http://www.example.com/support
+// @contact.email support@example.com
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
+
+// Example: "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..."
+
+// @host localhost:8080
+// @BasePath /api
+// @schemes http
+
 package main
 
 import (
@@ -5,6 +25,7 @@ import (
 	"boreholedata-ms/internal/api/router"
 	"boreholedata-ms/internal/database"
 	"boreholedata-ms/internal/logger"
+	_ "boreholedata-ms/docs"
 	"context"
 	"fmt"
 	"log"

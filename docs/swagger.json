@@ -1,0 +1,165 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is the Borehole Data Management API documentation.",
+        "title": "Borehole Data Management API",
+        "termsOfService": "http://example.com/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.example.com/support",
+            "email": "support@example.com"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api",
+    "paths": {
+        "/activities": {
+            "get": {
+                "responses": {}
+            },
+            "post": {
+                "responses": {}
+            }
+        },
+        "/activities/alerts": {
+            "get": {
+                "responses": {}
+            }
+        },
+        "/activities/summary/{userID}": {
+            "get": {
+                "responses": {}
+            }
+        },
+        "/api/lab-samples": {
+            "post": {
+                "responses": {}
+            }
+        },
+        "/api/lab-samples/{id}": {
+            "get": {
+                "responses": {}
+            },
+            "put": {
+                "responses": {}
+            },
+            "delete": {
+                "responses": {}
+            }
+        },
+        "/api/lab-samples/{sample_id}/ucs-results": {
+            "get": {
+                "responses": {}
+            }
+        },
+        "/api/lithology-logs": {
+            "post": {
+                "responses": {}
+            }
+        },
+        "/api/lithology-logs/{id}": {
+            "get": {
+                "responses": {}
+            },
+            "put": {
+                "responses": {}
+            },
+            "delete": {
+                "responses": {}
+            }
+        },
+        "/api/projects": {
+            "get": {
+                "responses": {}
+            },
+            "post": {
+                "responses": {}
+            }
+        },
+        "/api/projects/{id}": {
+            "get": {
+                "responses": {}
+            },
+            "put": {
+                "responses": {}
+            },
+            "delete": {
+                "responses": {}
+            }
+        },
+        "/api/projects/{id}/stations": {
+            "get": {
+                "responses": {}
+            }
+        },
+        "/api/projects/{project_id}/stations": {
+            "get": {
+                "responses": {}
+            }
+        },
+        "/api/reports/project/{project_id}": {
+            "get": {
+                "responses": {}
+            }
+        },
+        "/api/stations": {
+            "post": {
+                "responses": {}
+            }
+        },
+        "/api/stations/{id}": {
+            "get": {
+                "responses": {}
+            },
+            "put": {
+                "responses": {}
+            },
+            "delete": {
+                "responses": {}
+            }
+        },
+        "/api/stations/{station_id}/lab-samples": {
+            "get": {
+                "responses": {}
+            }
+        },
+        "/api/stations/{station_id}/lithology-logs": {
+            "get": {
+                "responses": {}
+            }
+        },
+        "/api/stations/{station_id}/lithology-logs/by-depth": {
+            "get": {
+                "responses": {}
+            }
+        },
+        "/api/ucs-results": {
+            "post": {
+                "responses": {}
+            }
+        },
+        "/api/ucs-results/{id}": {
+            "get": {
+                "responses": {}
+            },
+            "put": {
+                "responses": {}
+            },
+            "delete": {
+                "responses": {}
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}
