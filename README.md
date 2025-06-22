@@ -159,3 +159,6 @@ boreholedata-ms/
 ├── Dockerfile          # Docker build file for the Go application
 └── docker-compose.yaml # Docker Compose file for development environment
 ```
+## Postman Documentation Link:
+
+Documentation Link: https://documenter.getpostman.com/view/40938916/2sB2xBEVqS
